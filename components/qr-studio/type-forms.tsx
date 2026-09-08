@@ -1,33 +1,14 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { Select, Stack, Switch, Text, TextInput, Textarea, Title } from "@mantine/core";
 import type { QrFormData, QrType } from "@/lib/qr-payloads";
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1.5">
-      <Label className="text-[13px] text-muted-foreground">{label}</Label>
-      {children}
-    </div>
-  );
-}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-3">
-      <h3 className="flex items-center gap-2 text-sm font-semibold">{title}</h3>
-      <div className="space-y-3">{children}</div>
-    </div>
+    <Stack gap="sm">
+      <Title order={5}>{title}</Title>
+      <Stack gap="sm">{children}</Stack>
+    </Stack>
   );
 }
 
@@ -45,181 +26,138 @@ export function TypeForm({
     case "url":
       return (
         <Section title="Website address">
-          <Field label="URL">
-            <Input
-              placeholder="https://example.com"
-              value={data.url}
-              onChange={(e) => set({ url: e.target.value })}
-            />
-          </Field>
-          <p className="text-xs text-muted-foreground">
+          <TextInput
+            label="URL"
+            placeholder="https://example.com"
+            value={data.url}
+            onChange={(e) => set({ url: e.currentTarget.value })}
+          />
+          <Text size="xs" c="dimmed">
             Include https:// for best compatibility.
-          </p>
+          </Text>
         </Section>
       );
     case "text":
       return (
         <Section title="Plain text">
-          <Field label="Text content">
-            <Textarea
-              rows={5}
-              placeholder="Type anything…"
-              value={data.text}
-              onChange={(e) => set({ text: e.target.value })}
-            />
-          </Field>
-          <p className="text-xs text-muted-foreground">{data.text.length} characters</p>
+          <Textarea
+            label="Text content"
+            rows={5}
+            placeholder="Type anything…"
+            value={data.text}
+            onChange={(e) => set({ text: e.currentTarget.value })}
+          />
+          <Text size="xs" c="dimmed">{data.text.length} characters</Text>
         </Section>
       );
     case "email":
       return (
         <Section title="Email details">
-          <Field label="To">
-            <Input placeholder="name@example.com" value={data.to} onChange={(e) => set({ to: e.target.value })} />
-          </Field>
-          <Field label="Subject">
-            <Input placeholder="Subject" value={data.subject} onChange={(e) => set({ subject: e.target.value })} />
-          </Field>
-          <Field label="Body">
-            <Textarea rows={4} placeholder="Message body" value={data.body} onChange={(e) => set({ body: e.target.value })} />
-          </Field>
+          <TextInput label="To" placeholder="name@example.com" value={data.to} onChange={(e) => set({ to: e.currentTarget.value })} />
+          <TextInput label="Subject" placeholder="Subject" value={data.subject} onChange={(e) => set({ subject: e.currentTarget.value })} />
+          <Textarea label="Body" rows={4} placeholder="Message body" value={data.body} onChange={(e) => set({ body: e.currentTarget.value })} />
         </Section>
       );
     case "phone":
       return (
         <Section title="Phone / SMS">
-          <Field label="Action">
-            <Select value={data.kind} onValueChange={(v) => set({ kind: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="tel">Call (tel:)</SelectItem>
-                <SelectItem value="sms">SMS (smsto:)</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field label="Phone number">
-            <Input placeholder="+1-555-010-2030" value={data.number} onChange={(e) => set({ number: e.target.value })} />
-          </Field>
+          <Select
+            label="Action"
+            value={data.kind}
+            onChange={(v) => v && set({ kind: v })}
+            data={[
+              { value: "tel", label: "Call (tel:)" },
+              { value: "sms", label: "SMS (smsto:)" },
+            ]}
+          />
+          <TextInput label="Phone number" placeholder="+1-555-010-2030" value={data.number} onChange={(e) => set({ number: e.currentTarget.value })} />
           {data.kind === "sms" && (
-            <Field label="Prefilled message">
-              <Textarea rows={3} placeholder="Hello!" value={data.message} onChange={(e) => set({ message: e.target.value })} />
-            </Field>
+            <Textarea label="Prefilled message" rows={3} placeholder="Hello!" value={data.message} onChange={(e) => set({ message: e.currentTarget.value })} />
           )}
         </Section>
       );
     case "wifi":
       return (
         <Section title="Wi-Fi network">
-          <Field label="Network name (SSID)">
-            <Input placeholder="My-WiFi" value={data.ssid} onChange={(e) => set({ ssid: e.target.value })} />
-          </Field>
-          <Field label="Security">
-            <Select value={data.encryption} onValueChange={(v) => set({ encryption: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="WPA">WPA / WPA2</SelectItem>
-                <SelectItem value="WEP">WEP</SelectItem>
-                <SelectItem value="nopass">No password</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
+          <TextInput label="Network name (SSID)" placeholder="My-WiFi" value={data.ssid} onChange={(e) => set({ ssid: e.currentTarget.value })} />
+          <Select
+            label="Security"
+            value={data.encryption}
+            onChange={(v) => v && set({ encryption: v })}
+            data={[
+              { value: "WPA", label: "WPA / WPA2" },
+              { value: "WEP", label: "WEP" },
+              { value: "nopass", label: "No password" },
+            ]}
+          />
           {data.encryption !== "nopass" && (
-            <Field label="Password">
-              <Input placeholder="Password" value={data.password} onChange={(e) => set({ password: e.target.value })} />
-            </Field>
+            <TextInput label="Password" placeholder="Password" value={data.password} onChange={(e) => set({ password: e.currentTarget.value })} />
           )}
-          <div className="flex items-center justify-between rounded-md border px-3 py-2.5">
-            <Label className="text-[13px]">Hidden network</Label>
-            <Switch checked={data.hidden} onCheckedChange={(v) => set({ hidden: v })} />
-          </div>
+          <Switch label="Hidden network" checked={data.hidden} onChange={(e) => set({ hidden: e.currentTarget.checked })} />
         </Section>
       );
     case "location":
       return (
         <Section title="Location">
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Latitude">
-              <Input placeholder="40.7128" value={data.latitude} onChange={(e) => set({ latitude: e.target.value })} />
-            </Field>
-            <Field label="Longitude">
-              <Input placeholder="-74.0060" value={data.longitude} onChange={(e) => set({ longitude: e.target.value })} />
-            </Field>
-          </div>
-          <Field label="Label / query (optional)">
-            <Input placeholder="New York" value={data.query} onChange={(e) => set({ query: e.target.value })} />
-          </Field>
+          <Stack gap="sm" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <TextInput label="Latitude" placeholder="40.7128" value={data.latitude} onChange={(e) => set({ latitude: e.currentTarget.value })} />
+            <TextInput label="Longitude" placeholder="-74.0060" value={data.longitude} onChange={(e) => set({ longitude: e.currentTarget.value })} />
+          </Stack>
+          <TextInput label="Label / query (optional)" placeholder="New York" value={data.query} onChange={(e) => set({ query: e.currentTarget.value })} />
         </Section>
       );
     case "calendar":
       return (
         <Section title="Calendar event">
-          <Field label="Title">
-            <Input value={data.title} onChange={(e) => set({ title: e.target.value })} />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Start">
-              <Input type="datetime-local" value={data.start} onChange={(e) => set({ start: e.target.value })} />
-            </Field>
-            <Field label="End">
-              <Input type="datetime-local" value={data.end} onChange={(e) => set({ end: e.target.value })} />
-            </Field>
-          </div>
-          <Field label="Location">
-            <Input value={data.location} onChange={(e) => set({ location: e.target.value })} />
-          </Field>
-          <Field label="Description">
-            <Textarea rows={3} value={data.description} onChange={(e) => set({ description: e.target.value })} />
-          </Field>
+          <TextInput label="Title" value={data.title} onChange={(e) => set({ title: e.currentTarget.value })} />
+          <Stack gap="sm" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <TextInput label="Start" type="datetime-local" value={data.start} onChange={(e) => set({ start: e.currentTarget.value })} />
+            <TextInput label="End" type="datetime-local" value={data.end} onChange={(e) => set({ end: e.currentTarget.value })} />
+          </Stack>
+          <TextInput label="Location" value={data.location} onChange={(e) => set({ location: e.currentTarget.value })} />
+          <Textarea label="Description" rows={3} value={data.description} onChange={(e) => set({ description: e.currentTarget.value })} />
         </Section>
       );
     case "person":
       return (
-        <div className="space-y-6">
+        <Stack gap="lg">
           <Section title="Titles">
-            <div className="grid grid-cols-2 gap-3">
-              <Input placeholder="First name" value={data.firstName} onChange={(e) => set({ firstName: e.target.value })} />
-              <Input placeholder="Last name" value={data.lastName} onChange={(e) => set({ lastName: e.target.value })} />
-            </div>
-            <Input placeholder="Title (e.g. Dr.)" value={data.title} onChange={(e) => set({ title: e.target.value })} />
-            <Input placeholder="Nickname" value={data.nickname} onChange={(e) => set({ nickname: e.target.value })} />
+            <Stack gap="sm" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <TextInput placeholder="First name" value={data.firstName} onChange={(e) => set({ firstName: e.currentTarget.value })} />
+              <TextInput placeholder="Last name" value={data.lastName} onChange={(e) => set({ lastName: e.currentTarget.value })} />
+            </Stack>
+            <TextInput placeholder="Title (e.g. Dr.)" value={data.title} onChange={(e) => set({ title: e.currentTarget.value })} />
+            <TextInput placeholder="Nickname" value={data.nickname} onChange={(e) => set({ nickname: e.currentTarget.value })} />
           </Section>
           <Section title="Work">
-            <Input placeholder="Company" value={data.organization} onChange={(e) => set({ organization: e.target.value })} />
-            <Input placeholder="Job title" value={data.jobTitle} onChange={(e) => set({ jobTitle: e.target.value })} />
-            <Input placeholder="Department" value={data.department} onChange={(e) => set({ department: e.target.value })} />
+            <TextInput placeholder="Company" value={data.organization} onChange={(e) => set({ organization: e.currentTarget.value })} />
+            <TextInput placeholder="Job title" value={data.jobTitle} onChange={(e) => set({ jobTitle: e.currentTarget.value })} />
+            <TextInput placeholder="Department" value={data.department} onChange={(e) => set({ department: e.currentTarget.value })} />
           </Section>
           <Section title="Phone numbers">
-            <Input placeholder="Work phone" value={data.phoneWork} onChange={(e) => set({ phoneWork: e.target.value })} />
-            <Input placeholder="Mobile phone" value={data.phoneMobile} onChange={(e) => set({ phoneMobile: e.target.value })} />
-            <Input placeholder="Other phone" value={data.phoneOther} onChange={(e) => set({ phoneOther: e.target.value })} />
+            <TextInput placeholder="Work phone" value={data.phoneWork} onChange={(e) => set({ phoneWork: e.currentTarget.value })} />
+            <TextInput placeholder="Mobile phone" value={data.phoneMobile} onChange={(e) => set({ phoneMobile: e.currentTarget.value })} />
+            <TextInput placeholder="Other phone" value={data.phoneOther} onChange={(e) => set({ phoneOther: e.currentTarget.value })} />
           </Section>
           <Section title="Contact">
-            <Input placeholder="Email" value={data.email} onChange={(e) => set({ email: e.target.value })} />
-            <Input placeholder="Website" value={data.website} onChange={(e) => set({ website: e.target.value })} />
-            <Input placeholder="Address" value={data.address} onChange={(e) => set({ address: e.target.value })} />
-            <Textarea rows={2} placeholder="Notes" value={data.note} onChange={(e) => set({ note: e.target.value })} />
+            <TextInput placeholder="Email" value={data.email} onChange={(e) => set({ email: e.currentTarget.value })} />
+            <TextInput placeholder="Website" value={data.website} onChange={(e) => set({ website: e.currentTarget.value })} />
+            <TextInput placeholder="Address" value={data.address} onChange={(e) => set({ address: e.currentTarget.value })} />
+            <Textarea rows={2} placeholder="Notes" value={data.note} onChange={(e) => set({ note: e.currentTarget.value })} />
           </Section>
-        </div>
+        </Stack>
       );
     case "social":
       return (
         <Section title="Social profile">
-          <Field label="Network">
-            <Select value={data.network} onValueChange={(v) => set({ network: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {["X (Twitter)", "Instagram", "Facebook", "LinkedIn", "YouTube", "TikTok", "WhatsApp", "Telegram", "GitHub", "Custom"].map((n) => (
-                  <SelectItem key={n} value={n}>{n}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field label="Handle">
-            <Input placeholder="@username" value={data.handle} onChange={(e) => set({ handle: e.target.value })} />
-          </Field>
-          <Field label="Profile URL">
-            <Input placeholder="https://…" value={data.url} onChange={(e) => set({ url: e.target.value })} />
-          </Field>
+          <Select
+            label="Network"
+            value={data.network}
+            onChange={(v) => v && set({ network: v })}
+            data={["X (Twitter)", "Instagram", "Facebook", "LinkedIn", "YouTube", "TikTok", "WhatsApp", "Telegram", "GitHub", "Custom"]}
+          />
+          <TextInput label="Handle" placeholder="@username" value={data.handle} onChange={(e) => set({ handle: e.currentTarget.value })} />
+          <TextInput label="Profile URL" placeholder="https://…" value={data.url} onChange={(e) => set({ url: e.currentTarget.value })} />
         </Section>
       );
   }

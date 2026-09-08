@@ -1,11 +1,29 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
+import {
+  ColorInput,
+  Divider,
+  FileInput,
+  Group,
+  Image,
+  NumberInput,
+  Select,
+  Slider,
+  Stack,
+  Switch,
+  Text,
+  TextInput,
+  UnstyledButton,
+} from "@mantine/core";
 import type { QrAppearance } from "@/lib/qr-appearance";
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <Text size="xs" fw={700} tt="uppercase" c="blue">
+      {children}
+    </Text>
+  );
+}
 
 export function AppearancePanel({
   value,
@@ -16,7 +34,7 @@ export function AppearancePanel({
 }) {
   const set = (patch: Partial<QrAppearance>) => onChange({ ...value, ...patch });
 
-  const handleLogo = (file: File | undefined) => {
+  const handleLogo = (file: File | null) => {
     if (!file) {
       set({ logoDataUrl: "" });
       return;
@@ -27,146 +45,132 @@ export function AppearancePanel({
   };
 
   return (
-    <div className="space-y-5">
-      <div className="space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Shape</p>
-        <div className="space-y-2">
-          <Label className="text-[13px]">Pixel style</Label>
-          <Select value={value.dotsType} onValueChange={(v) => set({ dotsType: v as QrAppearance["dotsType"] })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="square">Square</SelectItem>
-              <SelectItem value="rounded">Rounded</SelectItem>
-              <SelectItem value="dots">Dots</SelectItem>
-              <SelectItem value="classy">Classy</SelectItem>
-              <SelectItem value="classy-rounded">Classy rounded</SelectItem>
-              <SelectItem value="extra-rounded">Extra rounded</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label className="text-[13px]">Corners</Label>
-            <Select value={value.cornersSquareType} onValueChange={(v) => set({ cornersSquareType: v as QrAppearance["cornersSquareType"] })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="square">Square</SelectItem>
-                <SelectItem value="dot">Dot</SelectItem>
-                <SelectItem value="extra-rounded">Rounded</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-[13px]">Corner dots</Label>
-            <Select value={value.cornersDotType} onValueChange={(v) => set({ cornersDotType: v as QrAppearance["cornersDotType"] })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="square">Square</SelectItem>
-                <SelectItem value="dot">Dot</SelectItem>
-                <SelectItem value="extra-rounded">Rounded</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-[13px]">Margin</Label>
-            <span className="text-xs text-muted-foreground">{value.margin}px</span>
-          </div>
-          <Slider value={[value.margin]} min={0} max={40} step={1} onValueChange={([v]) => set({ margin: v })} />
-        </div>
-      </div>
+    <Stack gap="md">
+      <Stack gap="xs">
+        <SectionLabel>Shape</SectionLabel>
+        <Select
+          label="Pixel style"
+          value={value.dotsType}
+          onChange={(v) => v && set({ dotsType: v as QrAppearance["dotsType"] })}
+          data={[
+            { value: "square", label: "Square" },
+            { value: "rounded", label: "Rounded" },
+            { value: "dots", label: "Dots" },
+            { value: "classy", label: "Classy" },
+            { value: "classy-rounded", label: "Classy rounded" },
+            { value: "extra-rounded", label: "Extra rounded" },
+          ]}
+        />
+        <Group grow>
+          <Select
+            label="Corners"
+            value={value.cornersSquareType}
+            onChange={(v) => v && set({ cornersSquareType: v as QrAppearance["cornersSquareType"] })}
+            data={[
+              { value: "square", label: "Square" },
+              { value: "dot", label: "Dot" },
+              { value: "extra-rounded", label: "Rounded" },
+            ]}
+          />
+          <Select
+            label="Corner dots"
+            value={value.cornersDotType}
+            onChange={(v) => v && set({ cornersDotType: v as QrAppearance["cornersDotType"] })}
+            data={[
+              { value: "square", label: "Square" },
+              { value: "dot", label: "Dot" },
+              { value: "extra-rounded", label: "Rounded" },
+            ]}
+          />
+        </Group>
+        <Text size="sm">Margin: {value.margin}px</Text>
+        <Slider value={value.margin} min={0} max={40} step={1} onChange={(v) => set({ margin: v })} />
+      </Stack>
 
-      <div className="space-y-3 border-t pt-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Color</p>
-        <div className="space-y-2">
-          <Label className="text-[13px]">Pixel color</Label>
-          <Select value={value.dotsColorMode} onValueChange={(v) => set({ dotsColorMode: v as "solid" | "gradient" })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="solid">Solid</SelectItem>
-              <SelectItem value="gradient">Linear gradient</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center gap-3">
-          <input type="color" value={value.dotsColor} onChange={(e) => set({ dotsColor: e.target.value })} className="h-9 w-12 cursor-pointer rounded-md border" />
+      <Divider />
+
+      <Stack gap="xs">
+        <SectionLabel>Color</SectionLabel>
+        <Select
+          label="Pixel color"
+          value={value.dotsColorMode}
+          onChange={(v) => v && set({ dotsColorMode: v as "solid" | "gradient" })}
+          data={[
+            { value: "solid", label: "Solid" },
+            { value: "gradient", label: "Linear gradient" },
+          ]}
+        />
+        <Group>
+          <ColorInput value={value.dotsColor} onChange={(v) => set({ dotsColor: v })} />
           {value.dotsColorMode === "gradient" && (
             <>
-              <input type="color" value={value.gradientColor2} onChange={(e) => set({ gradientColor2: e.target.value })} className="h-9 w-12 cursor-pointer rounded-md border" />
-              <div className="flex items-center gap-1">
-                <Input type="number" value={value.gradientRotation} onChange={(e) => set({ gradientRotation: Number(e.target.value) || 0 })} className="w-20" />
-                <span className="text-xs text-muted-foreground">°</span>
-              </div>
+              <ColorInput value={value.gradientColor2} onChange={(v) => set({ gradientColor2: v })} />
+              <NumberInput
+                value={value.gradientRotation}
+                onChange={(v) => set({ gradientRotation: Number(v) || 0 })}
+                w={90}
+                suffix="°"
+              />
             </>
           )}
-        </div>
-        <div className="space-y-2">
-          <Label className="text-[13px]">Background</Label>
-          <Select value={value.bgColorMode} onValueChange={(v) => set({ bgColorMode: v as "solid" | "transparent" })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="solid">Solid</SelectItem>
-              <SelectItem value="transparent">Transparent</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        </Group>
+        <Select
+          label="Background"
+          value={value.bgColorMode}
+          onChange={(v) => v && set({ bgColorMode: v as "solid" | "transparent" })}
+          data={[
+            { value: "solid", label: "Solid" },
+            { value: "transparent", label: "Transparent" },
+          ]}
+        />
         {value.bgColorMode === "solid" && (
-          <input type="color" value={value.bgColor} onChange={(e) => set({ bgColor: e.target.value })} className="h-9 w-12 cursor-pointer rounded-md border" />
+          <ColorInput value={value.bgColor} onChange={(v) => set({ bgColor: v })} />
         )}
-      </div>
+      </Stack>
 
-      <div className="space-y-3 border-t pt-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Logo & frame</p>
-        <div className="space-y-2">
-          <Label className="text-[13px]">Center logo (PNG/JPG)</Label>
-          <Input type="file" accept="image/*" onChange={(e) => handleLogo(e.target.files?.[0])} />
-          {value.logoDataUrl && (
-            <div className="flex items-center gap-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={value.logoDataUrl} alt="logo" className="h-10 w-10 rounded-md border object-contain" />
-              <button className="text-xs text-destructive underline" onClick={() => set({ logoDataUrl: "" })}>Remove</button>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center justify-between rounded-md border px-3 py-2.5">
-          <Label className="text-[13px]">Caption under QR</Label>
-          <Switch checked={value.showFrameText} onCheckedChange={(v) => set({ showFrameText: v })} />
-        </div>
+      <Divider />
+
+      <Stack gap="xs">
+        <SectionLabel>Logo & frame</SectionLabel>
+        <FileInput label="Center logo (PNG/JPG)" placeholder="Pick image" accept="image/*" value={null} onChange={handleLogo} clearable={false} />
+        {value.logoDataUrl && (
+          <Group>
+            <Image src={value.logoDataUrl} alt="logo" h={40} w={40} radius="md" fit="contain" />
+            <UnstyledButton onClick={() => set({ logoDataUrl: "" })} style={{ fontSize: 12, color: "var(--mantine-color-red-6)", textDecoration: "underline" }}>
+              Remove
+            </UnstyledButton>
+          </Group>
+        )}
+        <Switch label="Caption under QR" checked={value.showFrameText} onChange={(e) => set({ showFrameText: e.currentTarget.checked })} />
         {value.showFrameText && (
-          <Input value={value.frameText} onChange={(e) => set({ frameText: e.target.value })} placeholder="Scan for…" />
+          <TextInput value={value.frameText} onChange={(e) => set({ frameText: e.currentTarget.value })} placeholder="Scan for…" />
         )}
-      </div>
+      </Stack>
 
-      <div className="space-y-3 border-t pt-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">Quality</p>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label className="text-[13px]">Error correction</Label>
-            <Select value={value.ecl} onValueChange={(v) => set({ ecl: v as QrAppearance["ecl"] })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="L">L — Low</SelectItem>
-                <SelectItem value="M">M — Medium</SelectItem>
-                <SelectItem value="Q">Q — Quartile</SelectItem>
-                <SelectItem value="H">H — High</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-[13px]">Export size (px)</Label>
-            <Select value={String(value.size)} onValueChange={(v) => set({ size: Number(v) })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="512">512</SelectItem>
-                <SelectItem value="640">640</SelectItem>
-                <SelectItem value="1024">1024</SelectItem>
-                <SelectItem value="2048">2048</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
-    </div>
+      <Divider />
+
+      <Stack gap="xs">
+        <SectionLabel>Quality</SectionLabel>
+        <Group grow>
+          <Select
+            label="Error correction"
+            value={value.ecl}
+            onChange={(v) => v && set({ ecl: v as QrAppearance["ecl"] })}
+            data={[
+              { value: "L", label: "L — Low" },
+              { value: "M", label: "M — Medium" },
+              { value: "Q", label: "Q — Quartile" },
+              { value: "H", label: "H — High" },
+            ]}
+          />
+          <Select
+            label="Export size (px)"
+            value={String(value.size)}
+            onChange={(v) => v && set({ size: Number(v) })}
+            data={["512", "640", "1024", "2048"]}
+          />
+        </Group>
+      </Stack>
+    </Stack>
   );
 }

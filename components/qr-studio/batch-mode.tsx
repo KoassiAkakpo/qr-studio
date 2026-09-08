@@ -2,19 +2,19 @@
 
 import { useMemo, useState } from "react";
 import JSZip from "jszip";
-import { Download, FileSpreadsheet, Trash2, Upload } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  FileInput,
+  Group,
   Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+  SimpleGrid,
+  Stack,
+  Text,
+  Title,
+} from "@mantine/core";
 import { parseExcelFile, downloadTemplate } from "@/lib/excel";
 import {
   buildQrPayload,
@@ -54,7 +54,7 @@ export function BatchMode({
 
   const expected = useMemo(() => templateHeadersFor(type), [type]);
 
-  const handleFile = async (file: File | undefined) => {
+  const handleFile = async (file: File | null) => {
     if (!file) return;
     setError("");
     setProgress("Reading spreadsheet…");
@@ -117,107 +117,95 @@ export function BatchMode({
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
-      <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">1 · Choose type & template</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Label className="text-xs text-muted-foreground">QR type</Label>
-            <Select value={type} onValueChange={(v) => { onTypeChange(v as QrType); setRows([]); }}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {TYPE_ORDER.map((t) => (
-                  <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="rounded-md bg-muted p-3 text-xs">
-              <p className="font-medium">Expected columns:</p>
-              <p className="mt-1 font-mono text-[11px] leading-relaxed">{expected.join(", ")}</p>
+    <div style={{ display: "grid", gap: 24, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 380px))", alignItems: "start" }}>
+      <Stack gap="md">
+        <Card withBorder radius="md" p="md">
+          <Stack gap="sm">
+            <Title order={6}>1 · Choose type & template</Title>
+            <Select
+              label="QR type"
+              value={type}
+              onChange={(v) => { if (v) { onTypeChange(v as QrType); setRows([]); } }}
+              data={TYPE_ORDER.map((t) => ({ value: t, label: t }))}
+            />
+            <div style={{ background: "var(--mantine-color-gray-1)", borderRadius: 8, padding: 12 }}>
+              <Text size="xs" fw={600}>Expected columns:</Text>
+              <Text size="xs" ff="monospace" mt={4}>{expected.join(", ")}</Text>
             </div>
-            <Button variant="outline" className="w-full" onClick={() => downloadTemplate(type)}>
-              <FileSpreadsheet /> Download template
+            <Button variant="outline" fullWidth onClick={() => downloadTemplate(type)}>
+              Download template
             </Button>
-          </CardContent>
+          </Stack>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">2 · Import Excel / CSV</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Label htmlFor="batch-file" className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border border-dashed p-6 text-center hover:bg-muted/50">
-              <Upload className="h-6 w-6 text-muted-foreground" />
-              <span className="text-sm font-medium">Drop .xlsx, .xls or .csv here or click to browse</span>
-              <span className="text-xs text-muted-foreground">Max 500 rows</span>
-              <Input id="batch-file" type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleFile(e.target.files?.[0])} />
-            </Label>
+        <Card withBorder radius="md" p="md">
+          <Stack gap="sm">
+            <Title order={6}>2 · Import Excel / CSV</Title>
+            <FileInput
+              label="Spreadsheet (.xlsx, .xls, .csv — max 500 rows)"
+              placeholder="Click to browse"
+              accept=".xlsx,.xls,.csv"
+              value={null}
+              onChange={handleFile}
+            />
             {rows.length > 0 && (
-              <Button variant="ghost" size="sm" className="w-full" onClick={() => setRows([])}>
-                <Trash2 /> Clear {rows.length} rows
+              <Button variant="subtle" size="xs" fullWidth onClick={() => setRows([])}>
+                Clear {rows.length} rows
               </Button>
             )}
-            {progress && <p className="text-xs text-blue-600">{progress}</p>}
-            {error && <p className="text-xs text-destructive">{error}</p>}
-          </CardContent>
+            {progress && <Text size="xs" c="blue">{progress}</Text>}
+            {error && <Alert color="red" title="Note">{error}</Alert>}
+          </Stack>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">3 · Export</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary">{validRows.length} valid</Badge>
+        <Card withBorder radius="md" p="md">
+          <Stack gap="sm">
+            <Title order={6}>3 · Export</Title>
+            <Group>
+              <Badge>{validRows.length} valid</Badge>
               <Badge variant="outline">{rows.length - validRows.length} invalid</Badge>
-            </div>
-            <Button className="w-full" disabled={validRows.length === 0 || busy} onClick={exportZip}>
-              <Download /> {busy ? "Rendering…" : `Download ZIP (${validRows.length} PNGs)`}
+            </Group>
+            <Button fullWidth disabled={validRows.length === 0 || busy} onClick={exportZip} loading={busy}>
+              {busy ? "Rendering…" : `Download ZIP (${validRows.length} PNGs)`}
             </Button>
-            <p className="text-[11px] text-muted-foreground">
-              Every QR uses the Appearance settings on the right. Filenames come from the “filename” column when present.
-            </p>
-          </CardContent>
+            <Text size="xs" c="dimmed">
+              Every QR uses the Appearance settings. Filenames come from the “filename” column when present.
+            </Text>
+          </Stack>
         </Card>
-      </div>
+      </Stack>
 
-      <Card className="min-h-[400px]">
-        <CardHeader>
-          <CardTitle className="text-sm">Preview — first {Math.min(12, validRows.length)} of {validRows.length}</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Card withBorder radius="md" p="md" style={{ minHeight: 400 }}>
+        <Stack gap="md">
+          <Title order={6}>Preview — first {Math.min(12, validRows.length)} of {validRows.length}</Title>
           {validRows.length === 0 ? (
-            <div className="flex h-64 flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
-              <FileSpreadsheet className="h-8 w-8 opacity-50" />
-              <p>No rows yet. Download the template, fill it, then import it.</p>
-            </div>
+            <Text size="sm" c="dimmed" ta="center" py={60}>
+              No rows yet. Download the template, fill it, then import it.
+            </Text>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <SimpleGrid cols={{ base: 1, sm: 2, xl: 3 }} spacing="md">
               {validRows.slice(0, 12).map((r) => (
-                <div key={r.index} className="space-y-2 rounded-lg border p-3">
-                  <QrPreview payload={r.payload} appearance={{ ...appearance, size: 320, showFrameText: false }} compact />
-                  <p className="truncate text-xs font-medium" title={r.label}>{r.label}</p>
-                  <p className="truncate font-mono text-[11px] text-muted-foreground" title={r.payload}>{r.payload.slice(0, 80)}</p>
-                  <Button variant="outline" size="sm" className="w-full" onClick={() => downloadSingle(r)}>
-                    <Download /> PNG
-                  </Button>
-                </div>
+                <Card key={r.index} withBorder radius="md" p="sm">
+                  <Stack gap="xs">
+                    <QrPreview payload={r.payload} appearance={{ ...appearance, size: 320, showFrameText: false }} compact />
+                    <Text size="xs" fw={600} truncate title={r.label}>{r.label}</Text>
+                    <Text size="xs" c="dimmed" truncate ff="monospace" title={r.payload}>{r.payload.slice(0, 80)}</Text>
+                    <Button variant="outline" size="xs" fullWidth onClick={() => downloadSingle(r)}>
+                      PNG
+                    </Button>
+                  </Stack>
+                </Card>
               ))}
-            </div>
+            </SimpleGrid>
           )}
           {rows.some((r) => !r.data) && (
-            <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-xs">
-              <p className="font-semibold text-destructive">Skipped {rows.length - validRows.length} invalid row(s):</p>
-              <ul className="mt-1 list-disc pl-4">
-                {rows.filter((r) => !r.data).slice(0, 5).map((r) => (
-                  <li key={r.index}>Row {r.index + 2}: missing required fields</li>
-                ))}
-              </ul>
-            </div>
+            <Alert color="red" title={`Skipped ${rows.length - validRows.length} invalid row(s)`}>
+              {rows.filter((r) => !r.data).slice(0, 5).map((r) => (
+                <Text key={r.index} size="xs">Row {r.index + 2}: missing required fields</Text>
+              ))}
+            </Alert>
           )}
-        </CardContent>
+        </Stack>
       </Card>
     </div>
   );
