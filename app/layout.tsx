@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from "@mantine/core";
+import {
+  ColorSchemeScript,
+  MantineProvider,
+  createTheme,
+  mantineHtmlProps,
+} from "@mantine/core";
 import "@mantine/core/styles.css";
 import "./globals.css";
 
@@ -14,6 +19,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const theme = createTheme({
+  fontFamily: "var(--font-geist-sans), sans-serif",
+  fontFamilyMonospace: "var(--font-geist-mono), monospace",
+  headings: { fontFamily: "var(--font-geist-sans), sans-serif" },
+});
+
 export const metadata: Metadata = {
   title: "QR Studio — Custom QR Code Generator",
   description:
@@ -25,13 +36,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       {...mantineHtmlProps}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable}`}
     >
       <head>
         <ColorSchemeScript />
       </head>
-      <body className="min-h-full flex flex-col">
-        <MantineProvider>{children}</MantineProvider>
+      <body>
+        <MantineProvider theme={theme}>{children}</MantineProvider>
       </body>
     </html>
   );
