@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { Box, Paper, Text } from "@mantine/core";
 import QRCodeStyling from "qr-code-styling";
 import { appearanceToStylingOptions, type QrAppearance } from "@/lib/qr-appearance";
 
@@ -30,21 +31,28 @@ export function QrPreview({
   }, [payload, appearance]);
 
   return (
-    <div className="w-full overflow-hidden rounded-xl border bg-muted/40 p-4">
-      <div
-        className="mx-auto w-fit max-w-full overflow-hidden rounded-lg bg-white p-3 shadow-sm"
-        style={{ background: appearance.bgColorMode === "transparent" ? "repeating-conic-gradient(#e5e5e5 0% 25%, #fff 0% 50%) 0 0 / 20px 20px" : appearance.bgColor }}
+    <Paper withBorder p="md" radius="md">
+      <Box
+        mx="auto"
+        p="sm"
+        style={{
+          width: "fit-content",
+          maxWidth: "100%",
+          borderRadius: 8,
+          background:
+            appearance.bgColorMode === "transparent"
+              ? "repeating-conic-gradient(#e5e5e5 0% 25%, #fff 0% 50%) 0 0 / 20px 20px"
+              : appearance.bgColor,
+        }}
       >
-        <div
-          ref={containerRef}
-          className="mx-auto [&_svg]:h-auto [&_svg]:max-w-full"
-          style={{ width: compact ? 220 : 300 }}
-        />
+        <div ref={containerRef} style={{ width: compact ? 220 : 300, margin: "0 auto" }} />
         {appearance.showFrameText && appearance.frameText && (
-          <p className="mt-2 text-center text-sm font-semibold text-black">{appearance.frameText}</p>
+          <Text mt="xs" ta="center" size="sm" fw={600} c="black">
+            {appearance.frameText}
+          </Text>
         )}
-      </div>
-    </div>
+      </Box>
+    </Paper>
   );
 }
 

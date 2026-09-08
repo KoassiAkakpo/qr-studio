@@ -2,28 +2,37 @@
 
 import { useMemo, useState } from "react";
 import {
-  Calendar,
-  Check,
-  Copy,
-  Download,
-  Link2,
-  LayoutGrid,
-  Mail,
-  MapPin,
-  Phone,
-  QrCode,
-  Share2,
-  Share,
-  Type,
-  User,
-  Wifi,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { cn, downloadBlob } from "@/lib/utils";
+  ActionIcon,
+  Badge,
+  Box,
+  Button,
+  Card,
+  Container,
+  Group,
+  SegmentedControl,
+  Stack,
+  Tabs,
+  Text,
+  Textarea,
+  Title,
+} from "@mantine/core";
+import {
+  IconCalendar,
+  IconCheck,
+  IconCopy,
+  IconDownload,
+  IconLink,
+  IconMail,
+  IconMapPin,
+  IconPhone,
+  IconQrcode,
+  IconShare,
+  IconShare2,
+  IconLetterT,
+  IconUser,
+  IconWifi,
+} from "@tabler/icons-react";
+import { downloadBlob } from "@/lib/utils";
 import {
   buildQrPayload,
   defaultDataFor,
@@ -38,15 +47,15 @@ import { AppearancePanel } from "@/components/qr-studio/appearance-panel";
 import { BatchMode } from "@/components/qr-studio/batch-mode";
 
 const TYPE_ICONS: Record<QrType, React.ReactNode> = {
-  calendar: <Calendar />,
-  email: <Mail />,
-  location: <MapPin />,
-  person: <User />,
-  phone: <Phone />,
-  social: <Share2 />,
-  text: <Type />,
-  url: <Link2 />,
-  wifi: <Wifi />,
+  calendar: <IconCalendar size={16} />,
+  email: <IconMail size={16} />,
+  location: <IconMapPin size={16} />,
+  person: <IconUser size={16} />,
+  phone: <IconPhone size={16} />,
+  social: <IconShare2 size={16} />,
+  text: <IconLetterT size={16} />,
+  url: <IconLink size={16} />,
+  wifi: <IconWifi size={16} />,
 };
 
 export default function Home() {
@@ -54,7 +63,7 @@ export default function Home() {
   const [type, setType] = useState<QrType>("person");
   const [formData, setFormData] = useState<QrFormData>(() => defaultDataFor("person"));
   const [appearance, setAppearance] = useState<QrAppearance>(DEFAULT_APPEARANCE);
-  const [previewTab, setPreviewTab] = useState<"qr" | "raw">("qr");
+  const [previewTab, setPreviewTab] = useState<string | null>("qr");
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -113,130 +122,151 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <Box mih="100vh">
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-2 px-4 py-3">
-          <div className="flex items-center gap-2 font-semibold">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <QrCode className="h-5 w-5" />
-            </span>
-            <span>QR Studio</span>
-            <Badge variant="secondary" className="hidden sm:inline-flex">9 types · single + batch</Badge>
-          </div>
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            <Tabs value={mode} onValueChange={(v) => setMode(v as "single" | "batch")}>
-              <TabsList>
-                <TabsTrigger value="single">Single</TabsTrigger>
-                <TabsTrigger value="batch" className="gap-1.5"><LayoutGrid className="h-3.5 w-3.5" /> Multiple Codes</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            {mode === "single" && (
-              <>
-                <Button variant="outline" size="sm" onClick={handleCopyRaw}>
-                  {copied ? <Check /> : <Copy />} Copy raw
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleCopyImage}>
-                  {copied ? <Check /> : <Copy />} Copy PNG
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleShare}>
-                  <Share /> Share
-                </Button>
-                <Button size="sm" onClick={handleDownload} disabled={busy || !payload}>
-                  <Download /> {busy ? "Rendering…" : "Export PNG"}
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      <Box
+        pos="sticky"
+        top={0}
+        style={{ zIndex: 20, borderBottom: "1px solid var(--mantine-color-gray-3)", background: "rgba(255,255,255,0.9)", backdropFilter: "blur(6px)" }}
+      >
+        <Container size={1400} py="sm">
+          <Group justify="space-between" wrap="wrap" gap="sm">
+            <Group gap="sm">
+              <ActionIcon size="lg" radius="md" variant="filled" style={{ pointerEvents: "none" }}>
+                <IconQrcode size={20} />
+              </ActionIcon>
+              <Title order={4}>QR Studio</Title>
+              <Badge variant="light" visibleFrom="sm">9 types · single + batch · Mantine v9</Badge>
+            </Group>
+            <Group gap="xs" wrap="wrap">
+              <SegmentedControl
+                value={mode}
+                onChange={(v) => setMode(v as "single" | "batch")}
+                data={[
+                  { value: "single", label: "Single" },
+                  { value: "batch", label: "Multiple Codes" },
+                ]}
+              />
+              {mode === "single" && (
+                <>
+                  <Button variant="outline" size="xs" onClick={handleCopyRaw} leftSection={copied ? <IconCheck size={14} /> : <IconCopy size={14} />}>
+                    Copy raw
+                  </Button>
+                  <Button variant="outline" size="xs" onClick={handleCopyImage} leftSection={copied ? <IconCheck size={14} /> : <IconCopy size={14} />}>
+                    Copy PNG
+                  </Button>
+                  <Button variant="outline" size="xs" onClick={handleShare} leftSection={<IconShare size={14} />}>
+                    Share
+                  </Button>
+                  <Button size="xs" onClick={handleDownload} disabled={busy || !payload} loading={busy} leftSection={<IconDownload size={14} />}>
+                    Export PNG
+                  </Button>
+                </>
+              )}
+            </Group>
+          </Group>
+        </Container>
+      </Box>
 
-      <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6">
+      <Container size={1400} py="lg">
         {mode === "batch" ? (
           <BatchMode type={type} onTypeChange={switchType} appearance={appearance} />
         ) : (
-          <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)_minmax(0,420px)]">
+          <div
+            style={{
+              display: "grid",
+              gap: 24,
+              gridTemplateColumns: "220px minmax(0, 1fr) minmax(0, 420px)",
+              alignItems: "start",
+            }}
+            className="qr-single-grid"
+          >
             {/* Sidebar */}
-            <nav className="h-fit rounded-xl border bg-card p-2 shadow-sm lg:sticky lg:top-[76px]">
-              {TYPE_ORDER.map((t) => (
-                <button
-                  key={t}
-                  onClick={() => switchType(t)}
-                  className={cn(
-                    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-accent",
-                    type === t ? "bg-secondary text-secondary-foreground" : "text-muted-foreground"
-                  )}
-                >
-                  <span className="[&_svg]:h-4 [&_svg]:w-4">{TYPE_ICONS[t]}</span>
-                  {QR_TYPE_META[t].label}
-                </button>
-              ))}
-            </nav>
+            <Card withBorder radius="md" p="xs" style={{ position: "sticky", top: 76 }}>
+              <Stack gap={2}>
+                {TYPE_ORDER.map((t) => (
+                  <Button
+                    key={t}
+                    variant={type === t ? "light" : "subtle"}
+                    color={type === t ? "blue" : "gray"}
+                    justify="flex-start"
+                    leftSection={TYPE_ICONS[t]}
+                    onClick={() => switchType(t)}
+                    fullWidth
+                  >
+                    {QR_TYPE_META[t].label}
+                  </Button>
+                ))}
+              </Stack>
+            </Card>
 
             {/* Form */}
-            <Card className="h-fit">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <div>
-                  <CardTitle className="text-lg capitalize">{QR_TYPE_META[type].label}</CardTitle>
-                  <p className="mt-1 text-xs text-muted-foreground">{QR_TYPE_META[type].hint}</p>
-                </div>
-                <Badge variant={payload ? "default" : "destructive"}>
-                  {payload ? `${payload.length} chars` : "empty"}
-                </Badge>
-              </CardHeader>
-              <CardContent>
+            <Card withBorder radius="md" p="md">
+              <Stack gap="md">
+                <Group justify="space-between" align="flex-start">
+                  <div>
+                    <Title order={4} tt="capitalize">{QR_TYPE_META[type].label}</Title>
+                    <Text size="xs" c="dimmed" mt={4}>{QR_TYPE_META[type].hint}</Text>
+                  </div>
+                  <Badge color={payload ? "blue" : "red"}>
+                    {payload ? `${payload.length} chars` : "empty"}
+                  </Badge>
+                </Group>
                 <TypeForm data={formData} onChange={setFormData} />
-              </CardContent>
+              </Stack>
             </Card>
 
             {/* Preview */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Tabs value={previewTab} onValueChange={(v) => setPreviewTab(v as "qr" | "raw")}>
-                  <TabsList>
-                    <TabsTrigger value="qr">QR Code</TabsTrigger>
-                    <TabsTrigger value="raw">Raw Code</TabsTrigger>
-                  </TabsList>
+            <Stack gap="md">
+              <Group justify="space-between">
+                <Tabs value={previewTab} onChange={setPreviewTab}>
+                  <Tabs.List>
+                    <Tabs.Tab value="qr">QR Code</Tabs.Tab>
+                    <Tabs.Tab value="raw">Raw Code</Tabs.Tab>
+                  </Tabs.List>
                 </Tabs>
                 {payload && (
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-100 text-green-700">
-                    <Check className="h-4 w-4" />
-                  </span>
+                  <ActionIcon color="green" variant="light" radius="xl" style={{ pointerEvents: "none" }}>
+                    <IconCheck size={16} />
+                  </ActionIcon>
                 )}
-              </div>
+              </Group>
 
-              {previewTab === "qr" ? (
-                <QrPreview payload={payload} appearance={appearance} />
-              ) : (
-                <Card>
-                  <CardContent className="pt-5">
-                    <Textarea readOnly rows={12} value={payload} className="font-mono text-xs" />
-                    <Button variant="outline" size="sm" className="mt-3 w-full" onClick={handleCopyRaw}>
-                      <Copy /> Copy raw payload
+              {previewTab === "raw" ? (
+                <Card withBorder radius="md" p="md">
+                  <Stack gap="sm">
+                    <Textarea readOnly rows={12} value={payload} ff="monospace" styles={{ input: { fontSize: 12 } }} />
+                    <Button variant="outline" size="xs" fullWidth onClick={handleCopyRaw} leftSection={<IconCopy size={14} />}>
+                      Copy raw payload
                     </Button>
-                  </CardContent>
+                  </Stack>
                 </Card>
+              ) : (
+                <QrPreview payload={payload} appearance={appearance} />
               )}
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-sm">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500 text-white">✣</span>
-                    Appearance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+              <Card withBorder radius="md" p="md">
+                <Stack gap="md">
+                  <Title order={5}>✣ Appearance</Title>
                   <AppearancePanel value={appearance} onChange={setAppearance} />
-                </CardContent>
+                </Stack>
               </Card>
-            </div>
+            </Stack>
           </div>
         )}
-      </main>
+      </Container>
 
-      <footer className="border-t py-4 text-center text-xs text-muted-foreground">
-        QR Studio · encodings: URL, Text, Email (mailto:), Phone/SMS (tel:/smsto:), Wi-Fi (WIFI:), Location (geo:), Calendar (VEVENT), Person (vCard 3.0), Social links · PNG export
-      </footer>
-    </div>
+      <Box py="md" ta="center" style={{ borderTop: "1px solid var(--mantine-color-gray-3)" }}>
+        <Container size={1400}>
+          <Text size="xs" c="dimmed">
+            QR Studio · Mantine v9 · encodings: URL, Text, Email (mailto:), Phone/SMS (tel:/smsto:), Wi-Fi (WIFI:), Location (geo:), Calendar (VEVENT), Person (vCard 3.0), Social links · PNG export
+          </Text>
+          <Text size="xs" c="dimmed" mt={4} className="qr-single-grid-hint">
+            Tip: sidebar stacks below on narrow screens via responsive CSS.
+          </Text>
+        </Container>
+      </Box>
+      <style>{`@media (max-width: 1024px) { .qr-single-grid { grid-template-columns: 1fr !important; } }`}</style>
+    </Box>
   );
 }
