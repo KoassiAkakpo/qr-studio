@@ -4,7 +4,9 @@ import { templateHeadersFor, templateRowFor } from "./qr-payloads";
 
 export async function parseExcelFile(file: File): Promise<Record<string, unknown>[]> {
   const buf = await file.arrayBuffer();
-  const wb = XLSX.read(buf, { type: "array" });
+  // cellDates: sans lui, une vraie cellule date Excel arrive en série numérique
+  // (46296.74) que new Date() ne sait pas lire — les dates seraient perdues.
+  const wb = XLSX.read(buf, { type: "array", cellDates: true });
   const firstSheet = wb.SheetNames[0];
   if (!firstSheet) return [];
   const ws = wb.Sheets[firstSheet];

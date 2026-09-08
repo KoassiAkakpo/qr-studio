@@ -137,24 +137,59 @@ export const QR_TYPE_META: Record<
   },
 };
 
-function escapeVCard(v: string) {
-  return v.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+/**
+ * Échappe une valeur TEXT vCard / iCalendar. Les deux specs partagent les mêmes
+ * règles (RFC 6350 §3.4, RFC 5545 §3.3.11) : backslash, point-virgule, virgule et
+ * retours ligne. Un retour ligne littéral casserait le payload en produisant une
+ * ligne orpheline que les parseurs rejettent.
+ */
+function escapeText(v: string) {
+  return v
+    .replace(/\\/g, "\\\\")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .replace(/\r?\n/g, "\\n");
+}
+
+/**
+ * Assemble une valeur structurée (`N:`, `ORG:`) : chaque composant est échappé
+ * séparément, puis joint par des `;` bruts qui restent des séparateurs.
+ */
+function structured(...components: string[]) {
+  return components.map(escapeText).join(";");
 }
 
 function escapeWifi(v: string) {
-  return v.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/:/g, "\\:");
+  // La spec WIFI: réserve \ ; , : et le guillemet.
+  return v.replace(/([\\;,:"])/g, "\\$1");
 }
 
+/** Hash déterministe (djb2) — sert à dériver un UID stable depuis le contenu. */
+function stableHash(s: string) {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+
+/** Temps local flottant : YYYYMMDDTHHMMSS (sans suffixe Z, sans TZID). */
 function toVEventDate(input: string): string | null {
   if (!input) return null;
   const d = new Date(input);
   if (Number.isNaN(d.getTime())) return null;
-  // Floating local time: YYYYMMDDTHHMMSS
-  const p = (n: number) => String(n).padStart(2, "0");
   return (
-    `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}` +
-    `T${p(d.getHours())}${p(d.getMinutes())}00`
+    `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}` +
+    `T${pad2(d.getHours())}${pad2(d.getMinutes())}00`
   );
+}
+
+/** Horodatage UTC iCalendar : YYYYMMDDTHHMMSSZ. */
+function toIcsUtc(input: string): string | null {
+  if (!input) return null;
+  const d = new Date(input);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "")}`;
 }
 
 function ensureUrl(u: string) {
@@ -218,11 +253,12 @@ export function buildQrPayload(data: QrFormData): string {
       return data.text || "";
     case "email": {
       const to = data.to.trim();
-      const params = new URLSearchParams();
-      if (data.subject.trim()) params.set("subject", data.subject.trim());
-      if (data.body) params.set("body", data.body);
-      const q = params.toString();
-      return `mailto:${to}${q ? `?${q}` : ""}`;
+      // Pas d'URLSearchParams ici : il encode l'espace en "+", que les clients
+      // mail affichent littéralement dans un mailto. encodeURIComponent donne %20.
+      const params: string[] = [];
+      if (data.subject.trim()) params.push(`subject=${encodeURIComponent(data.subject.trim())}`);
+      if (data.body) params.push(`body=${encodeURIComponent(data.body)}`);
+      return `mailto:${to}${params.length ? `?${params.join("&")}` : ""}`;
     }
     case "phone": {
       const num = data.number.trim();
@@ -250,39 +286,61 @@ export function buildQrPayload(data: QrFormData): string {
       return `geo:${lat},${lng}`;
     }
     case "calendar": {
-      const start = toVEventDate(data.start) ?? "";
-      const end = toVEventDate(data.end) ?? "";
-      const lines = [
+      const start = toVEventDate(data.start);
+      const end = toVEventDate(data.end);
+      // UID et DTSTAMP sont dérivés du contenu, jamais de Date.now() :
+      // buildQrPayload est appelée dans un useMemo et doit rester pure, sinon le
+      // payload changerait à chaque render et le QR se redessinerait sans fin.
+      const uid = stableHash(
+        JSON.stringify([data.title, data.location, data.description, data.start, data.end])
+      );
+      const dtstamp = toIcsUtc(data.start);
+      const event = [
         "BEGIN:VEVENT",
-        `SUMMARY:${data.title}`,
+        `UID:${uid}@qr-studio`,
+        dtstamp ? `DTSTAMP:${dtstamp}` : "",
+        `SUMMARY:${escapeText(data.title)}`,
         start ? `DTSTART:${start}` : "",
         end ? `DTEND:${end}` : "",
-        data.location ? `LOCATION:${data.location}` : "",
-        data.description ? `DESCRIPTION:${data.description}` : "",
+        data.location ? `LOCATION:${escapeText(data.location)}` : "",
+        data.description ? `DESCRIPTION:${escapeText(data.description)}` : "",
         "END:VEVENT",
       ].filter(Boolean);
-      return lines.join("\n");
+      // L'enveloppe VCALENDAR est requise par la RFC 5545 ; un VEVENT nu est mal
+      // géré par une partie des appareils.
+      return [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//QR Studio//EN",
+        ...event,
+        "END:VCALENDAR",
+      ].join("\n");
     }
     case "person": {
-      const n = `${escapeVCard(data.lastName)};${escapeVCard(data.firstName)};;;`;
       const fn = `${data.firstName} ${data.lastName}`.trim() || "Contact";
+      // N: family;given;additional;prefix;suffix — la civilité ("Dr.") est un
+      // prefix, pas un TITLE : TITLE est réservé au poste occupé.
+      const n = structured(data.lastName, data.firstName, "", data.title, "");
+      // ORG: organization;department — le département est le 2e composant, pas
+      // une NOTE, sinon il écrase la note de l'utilisateur.
+      const org = data.department
+        ? structured(data.organization, data.department)
+        : escapeText(data.organization);
       const lines = [
         "BEGIN:VCARD",
         "VERSION:3.0",
         `N:${n}`,
-        `FN:${escapeVCard(fn)}`,
-        data.nickname ? `NICKNAME:${escapeVCard(data.nickname)}` : "",
-        data.title ? `TITLE:${escapeVCard(data.title)}` : "",
-        data.organization ? `ORG:${escapeVCard(data.organization)}` : "",
-        data.jobTitle ? `TITLE:${escapeVCard(data.jobTitle)}` : "",
-        data.department ? `NOTE:Dept: ${escapeVCard(data.department)}` : "",
-        data.phoneWork ? `TEL;TYPE=WORK,VOICE:${escapeVCard(data.phoneWork)}` : "",
-        data.phoneMobile ? `TEL;TYPE=CELL,VOICE:${escapeVCard(data.phoneMobile)}` : "",
-        data.phoneOther ? `TEL;TYPE=VOICE:${escapeVCard(data.phoneOther)}` : "",
-        data.email ? `EMAIL;TYPE=PREF,INTERNET:${escapeVCard(data.email)}` : "",
-        data.website ? `URL:${escapeVCard(data.website)}` : "",
-        data.address ? `ADR;TYPE=WORK:;;${escapeVCard(data.address)};;;;` : "",
-        data.note ? `NOTE:${escapeVCard(data.note)}` : "",
+        `FN:${escapeText(fn)}`,
+        data.nickname ? `NICKNAME:${escapeText(data.nickname)}` : "",
+        data.organization || data.department ? `ORG:${org}` : "",
+        data.jobTitle ? `TITLE:${escapeText(data.jobTitle)}` : "",
+        data.phoneWork ? `TEL;TYPE=WORK,VOICE:${escapeText(data.phoneWork)}` : "",
+        data.phoneMobile ? `TEL;TYPE=CELL,VOICE:${escapeText(data.phoneMobile)}` : "",
+        data.phoneOther ? `TEL;TYPE=VOICE:${escapeText(data.phoneOther)}` : "",
+        data.email ? `EMAIL;TYPE=PREF,INTERNET:${escapeText(data.email)}` : "",
+        data.website ? `URL:${escapeText(data.website)}` : "",
+        data.address ? `ADR;TYPE=WORK:;;${escapeText(data.address)};;;;` : "",
+        data.note ? `NOTE:${escapeText(data.note)}` : "",
         "END:VCARD",
       ].filter(Boolean);
       return lines.join("\n");
@@ -345,11 +403,34 @@ export function templateRowFor(type: QrType): Record<string, string> {
   return row;
 }
 
+/**
+ * Normalise une cellule date/heure en valeur `datetime-local`.
+ *
+ * Avec `cellDates: true`, xlsx renvoie un objet Date, mais le flottant Excel
+ * introduit une dérive (18:00 arrive en 17:59:59.999) que la troncature des
+ * secondes transformerait en 17:59 — d'où l'arrondi à la minute.
+ */
+function toDateTimeLocal(value: unknown): string {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    const d = new Date(Math.round(value.getTime() / 60_000) * 60_000);
+    return (
+      `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}` +
+      `T${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+    );
+  }
+  return String(value ?? "").trim();
+}
+
 export function rowToFormData(
   type: QrType,
   row: Record<string, unknown>
 ): QrFormData | null {
-  const s = (k: string) => String(row[k] ?? "").trim();
+  // Les en-têtes sont saisis à la main dans Excel : on tolère la casse, sinon
+  // "FirstName" rendrait la ligne invalide en silence.
+  const byLowerKey = new Map<string, unknown>();
+  for (const [k, v] of Object.entries(row)) byLowerKey.set(k.trim().toLowerCase(), v);
+  const raw = (k: string) => byLowerKey.get(k.toLowerCase());
+  const s = (k: string) => String(raw(k) ?? "").trim();
   try {
     switch (type) {
       case "url":
@@ -379,9 +460,14 @@ export function rowToFormData(
           hidden: ["true", "yes", "1"].includes(s("hidden").toLowerCase()),
         };
       }
-      case "location":
-        if (!s("latitude") || !s("longitude")) return null;
-        return { type, latitude: s("latitude"), longitude: s("longitude"), query: s("query") };
+      case "location": {
+        const latitude = s("latitude");
+        const longitude = s("longitude");
+        if (!latitude || !longitude) return null;
+        // Sans ce contrôle une coordonnée textuelle produit un geo:abc,def muet.
+        if (!Number.isFinite(Number(latitude)) || !Number.isFinite(Number(longitude))) return null;
+        return { type, latitude, longitude, query: s("query") };
+      }
       case "calendar":
         if (!s("title")) return null;
         return {
@@ -389,8 +475,8 @@ export function rowToFormData(
           title: s("title"),
           location: s("location"),
           description: s("description"),
-          start: s("start"),
-          end: s("end"),
+          start: toDateTimeLocal(raw("start")),
+          end: toDateTimeLocal(raw("end")),
         };
       case "person":
         if (!s("firstName") && !s("lastName") && !s("email") && !s("phoneMobile")) return null;

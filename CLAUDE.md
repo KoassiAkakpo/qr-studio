@@ -7,13 +7,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev     # next dev
-npm run build   # next build — the only type-check gate (tsconfig is noEmit)
-npm run lint    # bare `eslint` (flat config); no `next lint`
-npx tsc --noEmit  # type-check without a full build
+npm run dev        # next dev
+npm run build      # next build — also runs the TS check (tsconfig is noEmit)
+npm run lint       # bare `eslint` (flat config); no `next lint`
+npm test           # vitest run
+npm run test:watch # vitest, watch mode
+npx tsc --noEmit   # type-check without a full build
+npx vitest run lib/qr-payloads.test.ts        # a single test file
+npx vitest run -t "place la civilité"          # a single test by name
 ```
 
-There is no test framework, test script, or CI config in this repo. Do not invent one; verify changes with `npm run build` and by exercising the UI.
+Vitest is configured in `vitest.config.mts` (node environment, `@/*` alias, only
+`lib/**/*.test.ts` is collected). Test names and comments in the test suite are in
+French, matching the audit notes in [PLAN.md](PLAN.md). There is no CI config.
+
+`lib/qr-payloads.test.ts` locks down the wire format of every payload type. **Treat a
+failure there as a real regression**, not a test to update: those assertions encode
+RFC-level requirements (iCalendar/vCard escaping, `N:`/`ORG:` component order, `%20`
+vs `+` in mailto) that were each shipped broken at some point. Change an expectation
+only with a spec reason.
 
 ## Architecture
 
@@ -38,7 +50,15 @@ Almost every change touches one of two independent concerns, and keeping them se
 - [components/qr-studio/type-forms.tsx](components/qr-studio/type-forms.tsx): a `TypeForm` case and an entry in `TYPE_ORDER` (which drives both the sidebar and the batch type `Select`).
 - [app/page.tsx](app/page.tsx): an entry in `TYPE_ICONS`.
 
-Encoding conventions already established in `buildQrPayload`: `mailto:` with `URLSearchParams`, `tel:`/`smsto:`, `WIFI:` with `escapeWifi`, `geo:`, bare `VEVENT` (not wrapped in `VCALENDAR`), vCard 3.0 with `escapeVCard`. Calendar times are deliberately *floating local* (`toVEventDate`, no `Z` suffix). `ensureUrl` prepends `https://` only when no scheme is present.
+Encoding conventions established in `buildQrPayload`: `mailto:` built by hand with `encodeURIComponent` (**never `URLSearchParams`** — it encodes spaces as `+`, which mail clients show literally), `tel:`/`smsto:`, `WIFI:` with `escapeWifi`, `geo:`, `VEVENT` inside a full `VCALENDAR` envelope, vCard 3.0. `ensureUrl` prepends `https://` only when no scheme is present.
+
+Three escaping rules that are easy to get wrong:
+
+- `escapeText` covers both vCard and iCalendar TEXT values (same rules in RFC 6350 §3.4 and RFC 5545 §3.3.11). Every free-text value must go through it — an unescaped newline produces an orphan line that invalidates the whole payload.
+- Structured values (`N:`, `ORG:`) use `structured()`, which escapes each component and joins with raw `;`. Never escape the component separator itself.
+- `buildQrPayload` **must stay pure** — it runs inside a `useMemo`, so a `Date.now()` or random UID would change the payload on every keystroke and redraw the QR endlessly. The calendar `UID` is a `stableHash` of the event fields and `DTSTAMP` is derived from the start date for exactly this reason.
+
+Calendar times are deliberately *floating local* (`toVEventDate`, no `Z`, no TZID). Excel date cells arrive as `Date` objects (`cellDates: true`) and go through `toDateTimeLocal`, which rounds to the minute — the Excel float renders 18:00 as 17:59:59.999.
 
 ### Batch mode
 
@@ -54,7 +74,7 @@ Encoding conventions already established in `buildQrPayload`: `mailto:` with `UR
 `qr-code-styling` is used two different ways from [components/qr-studio/qr-preview.tsx](components/qr-studio/qr-preview.tsx):
 
 - **Preview**: `type: "svg"`, one long-lived `QRCodeStyling` instance kept in a ref and mutated via `.update()` on each change — never re-instantiated, or the DOM node is orphaned.
-- **Export**: a throwaway `type: "canvas"` instance and `getRawData("png")`. The library's types don't expose `getRawData`, hence the casts in `renderQrPngBlob`; they are load-bearing, not sloppiness.
+- **Export**: a throwaway `type: "canvas"` instance and `getRawData("png")`. The `as unknown as` casts in `renderQrPngBlob` are **unnecessary** — `DrawType` is `"canvas" | "svg"` and `getRawData` is declared in `QRCodeStyling.d.ts`. Drop them when you next touch that file.
 
 The library sizes its SVG to the *export* resolution (`appearance.size`, default 640). The `.qr-preview-stage` rule at the bottom of [app/globals.css](app/globals.css) clamps it to the container — without it the preview overflows the layout horizontally.
 
