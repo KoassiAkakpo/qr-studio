@@ -78,3 +78,13 @@
     color: var(--foreground);
   }
 }
+
+/* qr-code-styling renders an SVG sized to the export resolution (e.g. 640px).
+   Constrain it to its container so the preview never overflows the layout. */
+.qr-preview-stage svg,
+.qr-preview-stage canvas,
+.qr-preview-stage img {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block;
+}

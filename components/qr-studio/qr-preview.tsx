@@ -45,7 +45,11 @@ export function QrPreview({
               : appearance.bgColor,
         }}
       >
-        <div ref={containerRef} style={{ width: compact ? 220 : 300, margin: "0 auto" }} />
+        <div
+          ref={containerRef}
+          className="qr-preview-stage"
+          style={{ width: "100%", maxWidth: compact ? 220 : 300, margin: "0 auto" }}
+        />
         {appearance.showFrameText && appearance.frameText && (
           <Text mt="xs" ta="center" size="sm" fw={600} c="black">
             {appearance.frameText}

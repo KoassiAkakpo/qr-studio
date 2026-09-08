@@ -217,7 +217,7 @@ export default function Home() {
             </Card>
 
             {/* Preview */}
-            <Stack gap="md">
+            <Stack gap="md" style={{ minWidth: 0 }}>
               <Group justify="space-between">
                 <Tabs value={previewTab} onChange={setPreviewTab}>
                   <Tabs.List>
