@@ -48,6 +48,80 @@ export const DEFAULT_APPEARANCE: QrAppearance = {
   showFrameText: true,
 };
 
+/**
+ * Capacité maximale en octets d'un QR version 40, par niveau de correction
+ * d'erreur (mode octet). Au-delà, le générateur lève « code length overflow ».
+ * Le logo n'entre pas en compte : il recouvre des modules mais ne consomme pas
+ * de capacité de données.
+ */
+export const QR_BYTE_CAPACITY: Record<QrAppearance["ecl"], number> = {
+  L: 2953,
+  M: 2331,
+  Q: 1663,
+  H: 1273,
+};
+
+/** Le payload est encodé en UTF-8 : c'est la taille en octets qui compte, pas en caractères. */
+export function payloadByteLength(payload: string) {
+  return new TextEncoder().encode(payload).length;
+}
+
+export function capacityFor(ecl: QrAppearance["ecl"]) {
+  return QR_BYTE_CAPACITY[ecl];
+}
+
+export function exceedsCapacity(payload: string, ecl: QrAppearance["ecl"]) {
+  return payloadByteLength(payload) > capacityFor(ecl);
+}
+
+function parseHexColor(color: string): [number, number, number] | null {
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim());
+  if (!m) return null;
+  const h = m[1];
+  const full = h.length === 3 ? h.replace(/./g, (c) => c + c) : h;
+  return [
+    parseInt(full.slice(0, 2), 16),
+    parseInt(full.slice(2, 4), 16),
+    parseInt(full.slice(4, 6), 16),
+  ];
+}
+
+/**
+ * Noir ou blanc selon la luminance du fond (WCAG). Le seuil 0.179 est le point
+ * où les contrastes avec le noir et avec le blanc s'égalisent.
+ *
+ * Utilisé à l'identique dans l'aperçu et dans l'export : c'est ce qui garantit
+ * que la légende a la même couleur des deux côtés.
+ */
+export function readableTextColor(background: string): string {
+  const rgb = parseHexColor(background);
+  if (!rgb) return "#000000";
+  const [r, g, b] = rgb.map((channel) => {
+    const s = channel / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  });
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luminance > 0.179 ? "#000000" : "#ffffff";
+}
+
+/** Couleur de la légende : sur fond transparent, on suppose un support clair. */
+export function captionColorFor(appearance: QrAppearance) {
+  return readableTextColor(
+    appearance.bgColorMode === "transparent" ? "#ffffff" : appearance.bgColor
+  );
+}
+
+/**
+ * Taille de police de la légende, proportionnelle au QR.
+ *
+ * Le ratio reproduit l'aperçu, où un texte de 14px accompagne un QR affiché à
+ * 300px de large : l'export reste donc visuellement identique à l'aperçu quelle
+ * que soit la résolution choisie.
+ */
+export function captionFontSize(qrSize: number) {
+  return Math.max(10, Math.round(qrSize * (14 / 300)));
+}
+
 export function appearanceToStylingOptions(
   appearance: QrAppearance,
   data: string

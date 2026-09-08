@@ -74,9 +74,19 @@ Calendar times are deliberately *floating local* (`toVEventDate`, no `Z`, no TZI
 `qr-code-styling` is used two different ways from [components/qr-studio/qr-preview.tsx](components/qr-studio/qr-preview.tsx):
 
 - **Preview**: `type: "svg"`, one long-lived `QRCodeStyling` instance kept in a ref and mutated via `.update()` on each change — never re-instantiated, or the DOM node is orphaned.
-- **Export**: a throwaway `type: "canvas"` instance and `getRawData("png")`. The `as unknown as` casts in `renderQrPngBlob` are **unnecessary** — `DrawType` is `"canvas" | "svg"` and `getRawData` is declared in `QRCodeStyling.d.ts`. Drop them when you next touch that file.
+- **Export**: a throwaway `type: "canvas"` instance and `getRawData("png")`, then the caption is composited on a 2D canvas because `qr-code-styling` cannot draw text.
 
 The library sizes its SVG to the *export* resolution (`appearance.size`, default 640). The `.qr-preview-stage` rule at the bottom of [app/globals.css](app/globals.css) clamps it to the container — without it the preview overflows the layout horizontally.
+
+**Preview/export parity is the contract here.** The caption used to exist only in the preview, so exported PNGs silently lacked it. Anything added to the preview must also be drawn in `renderQrPngBlob`, and both sides must derive shared values from the same helper — `captionColorFor` and `captionFontSize` in [lib/qr-appearance.ts](lib/qr-appearance.ts) exist so the two cannot drift.
+
+Three traps in the compositing code:
+
+- `ImageBitmap.close()` resets `width`/`height` to **0**. Read the dimensions into locals before closing, or the caption gets drawn over the QR instead of below it — which is exactly the bug that shipped in the first draft of this function.
+- `await document.fonts.ready` before `fillText`, otherwise the first export of a session uses the fallback font.
+- A canvas 2D context is not available in every environment; the function degrades to the plain QR blob rather than throwing.
+
+Capacity is enforced *before* generation, never by catching: `exceedsCapacity` (a static version-40 byte table per ECL, validated against the real generator in `lib/qr-appearance.test.ts`) is computed during render, gates the image-producing buttons, and shows the byte budget in the badge. The `try`/`catch` around `.update()` is only a net for unexpected library throws — without it, an overflow escapes the effect and takes down the tree, since there is no error boundary. The failure is keyed to a `payload|ecl` signature so it expires during render rather than being cleared by a second `setState`.
 
 ## Styling: Mantine v9, exclusively
 

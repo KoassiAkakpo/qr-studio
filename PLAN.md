@@ -10,14 +10,14 @@ Ordre de traitement : les lots 1 à 3 changent ce que le produit livre réelleme
 
 ## P0 — Bugs qui cassent le produit
 
-### 1. Le caption n'est jamais dans le PNG exporté **[vérifié]**
+### ✅ 1. Le caption n'est jamais dans le PNG exporté **[vérifié]**
 
 `frameText` n'apparaît que dans `components/qr-studio/qr-preview.tsx` (rendu React) ;
 `renderQrPngBlob` et `appearanceToStylingOptions` l'ignorent totalement. Comme
 `showFrameText: true` par défaut avec « Scan for details », **tout utilisateur voit
 un aperçu qui ne correspond pas à son export.**
 
-### 2. Dépassement de capacité → page blanche **[vérifié]**
+### ✅ 2. Dépassement de capacité → page blanche **[vérifié]**
 
 `qrcode-generator` lève `code length overflow (19220>18672)` dès ~2 400 caractères
 en ECL M. Le `.update()` dans le `useEffect` de `QrPreview` n'est pas protégé et il
@@ -109,7 +109,7 @@ officiel (`https://cdn.sheetjs.com/xlsx-0.20.x`) ou basculer sur `exceljs`.
 |----|----------|
 | 16 | ✅ **Aucun test**, alors que `buildQrPayload` et `rowToFormData` sont des fonctions pures — la cible idéale, et précisément là où se nichent les bugs 3/4/5 |
 | 17 | Métadonnées par type éclatées sur 3 fichiers (`QR_TYPE_META`, `TYPE_ORDER`, `TYPE_ICONS`) → un registre unique supprimerait la synchronisation manuelle |
-| 18 | ⚠️ note CLAUDE.md corrigée (lot 1), casts à retirer au lot 6. Les casts `as unknown as` de `renderQrPngBlob` sont **inutiles** : `DrawType = "canvas" \| "svg"` et `getRawData` sont correctement typés. La note CLAUDE.md qui les dit « load-bearing » est fausse |
+| 18 | ✅ Les casts `as unknown as` de `renderQrPngBlob` sont **inutiles** : `DrawType = "canvas" \| "svg"` et `getRawData` sont correctement typés. La note CLAUDE.md qui les dit « load-bearing » est fausse |
 | 19 | `handleDownload` réimplémente `slugify` inline |
 | 20 | Branche `r.filename` morte dans `labelForRow` (`QrFormData` n'a pas ce champ) |
 | 21 | Nouvel objet `appearance` à chaque render du batch → `.update()` sur les 12 aperçus à chaque frappe |
@@ -159,11 +159,34 @@ Corrections livrées :
 Les tests ont été écrits avant les correctifs, parce que ce sont des changements de
 format de sortie où une régression est invisible à l'œil nu.
 
-### Lot 2 — Robustesse du rendu  ·  #1, #2
+### ✅ Lot 2 — Robustesse du rendu  ·  #1, #2 (+ #18)
 
-Dessiner le caption dans le canvas d'export pour rendre l'aperçu fidèle ; encadrer
-la génération QR d'un try/catch avec message Mantine (« payload trop long, passez en
-ECL L ou raccourcissez ») et compteur de capacité restante en direct.
+**Fait.** 19 tests supplémentaires (52 au total).
+
+- La légende est composée sur un canvas 2D par-dessus le PNG du QR.
+  `captionColorFor` et `captionFontSize` sont partagés entre l'aperçu et l'export
+  pour qu'ils ne puissent plus diverger ; la couleur du texte suit désormais la
+  luminance du fond (WCAG) au lieu d'un noir codé en dur.
+- Capacité vérifiée **avant** génération via une table version 40 par niveau ECL,
+  validée dans les tests contre le vrai générateur (accepte la capacité annoncée,
+  refuse un octet de plus). Elle alimente le badge d'octets, l'alerte, et
+  désactive les actions qui produisent une image.
+- Le `try`/`catch` autour de `.update()` reste un filet pour les erreurs
+  imprévues ; l'échec est indexé par signature `payload|ecl` pour se périmer au
+  rendu sans second `setState`.
+- Les casts `as unknown as` de `renderQrPngBlob` sont supprimés (#18).
+
+Vérifié dans Chrome headless via CDP, en interceptant le blob réellement produit
+par l'app : 640×706 avec 2331 pixels d'encre dans la bande de légende, et un
+`inkQR` identique (172245) avec et sans légende — le QR n'est pas dégradé. Côté
+capacité : à 2 400 caractères en ECL M, l'alerte s'affiche, les boutons se
+désactivent, la page survit, aucune exception non capturée, et le QR revient
+quand on repasse sous la limite.
+
+Cette vérification navigateur a trouvé un bug que les tests unitaires ne
+pouvaient pas voir : `ImageBitmap.close()` remet `width`/`height` à 0, et la
+première version lisait `bitmap.height` après la fermeture — la légende était
+dessinée par-dessus le QR.
 
 ### Lot 3 — Sécurité  ·  #12
 

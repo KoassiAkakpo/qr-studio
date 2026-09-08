@@ -40,7 +40,13 @@ import {
   type QrFormData,
   type QrType,
 } from "@/lib/qr-payloads";
-import { DEFAULT_APPEARANCE, type QrAppearance } from "@/lib/qr-appearance";
+import {
+  DEFAULT_APPEARANCE,
+  capacityFor,
+  exceedsCapacity,
+  payloadByteLength,
+  type QrAppearance,
+} from "@/lib/qr-appearance";
 import { TypeForm, TYPE_ORDER } from "@/components/qr-studio/type-forms";
 import { QrPreview, renderQrPngBlob } from "@/components/qr-studio/qr-preview";
 import { AppearancePanel } from "@/components/qr-studio/appearance-panel";
@@ -68,6 +74,12 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
 
   const payload = useMemo(() => buildQrPayload(formData), [formData]);
+  const bytes = payloadByteLength(payload);
+  const capacity = capacityFor(appearance.ecl);
+  const overCapacity = exceedsCapacity(payload, appearance.ecl);
+  // Un payload trop long fait échouer la génération : on coupe les actions qui
+  // rendraient une image plutôt que de laisser l'erreur remonter.
+  const canRender = Boolean(payload) && !overCapacity;
 
   const switchType = (t: QrType) => {
     setType(t);
@@ -83,6 +95,8 @@ export default function Home() {
           ? `${(formData.firstName || "").trim()}-${(formData.lastName || "").trim()}`.replace(/^-|-$/g, "") || "contact"
           : payload.slice(0, 30);
       downloadBlob(blob, `qr-${type}-${base.replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40) || "code"}.png`);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Export failed.");
     } finally {
       setBusy(false);
     }
@@ -107,11 +121,17 @@ export default function Home() {
 
   const handleShare = async () => {
     try {
-      const blob = await renderQrPngBlob(payload, appearance);
-      const file = new File([blob], "qr-code.png", { type: "image/png" });
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "QR Code" });
-      } else if (navigator.share) {
+      // Le partage de fichier n'est tenté que si l'image peut réellement être
+      // produite ; sinon on retombe sur le texte au lieu d'échouer en silence.
+      if (canRender) {
+        const blob = await renderQrPngBlob(payload, appearance);
+        const file = new File([blob], "qr-code.png", { type: "image/png" });
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], title: "QR Code" });
+          return;
+        }
+      }
+      if (navigator.share) {
         await navigator.share({ text: payload, title: "QR Code" });
       } else {
         handleCopyRaw();
@@ -152,13 +172,13 @@ export default function Home() {
                   <Button variant="outline" size="xs" onClick={handleCopyRaw} leftSection={copied ? <IconCheck size={14} /> : <IconCopy size={14} />}>
                     Copy raw
                   </Button>
-                  <Button variant="outline" size="xs" onClick={handleCopyImage} leftSection={copied ? <IconCheck size={14} /> : <IconCopy size={14} />}>
+                  <Button variant="outline" size="xs" onClick={handleCopyImage} disabled={!canRender} leftSection={copied ? <IconCheck size={14} /> : <IconCopy size={14} />}>
                     Copy PNG
                   </Button>
                   <Button variant="outline" size="xs" onClick={handleShare} leftSection={<IconShare size={14} />}>
                     Share
                   </Button>
-                  <Button size="xs" onClick={handleDownload} disabled={busy || !payload} loading={busy} leftSection={<IconDownload size={14} />}>
+                  <Button size="xs" onClick={handleDownload} disabled={busy || !canRender} loading={busy} leftSection={<IconDownload size={14} />}>
                     Export PNG
                   </Button>
                 </>
@@ -208,8 +228,8 @@ export default function Home() {
                     <Title order={4} tt="capitalize">{QR_TYPE_META[type].label}</Title>
                     <Text size="xs" c="dimmed" mt={4}>{QR_TYPE_META[type].hint}</Text>
                   </div>
-                  <Badge color={payload ? "blue" : "red"}>
-                    {payload ? `${payload.length} chars` : "empty"}
+                  <Badge color={canRender ? "blue" : "red"}>
+                    {payload ? `${bytes} / ${capacity} bytes` : "empty"}
                   </Badge>
                 </Group>
                 <TypeForm data={formData} onChange={setFormData} />
@@ -225,7 +245,7 @@ export default function Home() {
                     <Tabs.Tab value="raw">Raw Code</Tabs.Tab>
                   </Tabs.List>
                 </Tabs>
-                {payload && (
+                {canRender && (
                   <ActionIcon color="green" variant="light" radius="xl" style={{ pointerEvents: "none" }}>
                     <IconCheck size={16} />
                   </ActionIcon>

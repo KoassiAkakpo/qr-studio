@@ -30,6 +30,7 @@
     "postcss": "^8.5.28",
     "postcss-preset-mantine": "^1.18.0",
     "postcss-simple-vars": "^7.0.1",
+    "qrcode-generator": "^1.5.2",
     "typescript": "^5",
     "vitest": "^5.0.0"
   }

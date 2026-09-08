@@ -98,7 +98,7 @@ export const QR_TYPE_META: Record<
   text: {
     label: "Text",
     placeholder: "Plain text",
-    hint: "Any plain text up to ~2,900 chars.",
+    hint: "Plain text. The byte budget depends on the error correction level.",
   },
   email: {
     label: "Email",
