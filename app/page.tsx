@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import {
   ActionIcon,
   Badge,
@@ -30,6 +30,7 @@ import {
   IconMoon,
   IconPhone,
   IconQrcode,
+  IconShare,
   IconShare2,
   IconSun,
   IconLetterT,
@@ -57,6 +58,17 @@ import { TypeForm } from "@/components/qr-studio/type-forms";
 import { QrPreview, renderQrPngBlob } from "@/components/qr-studio/qr-preview";
 import { AppearancePanel } from "@/components/qr-studio/appearance-panel";
 import { BatchMode } from "@/components/qr-studio/batch-mode";
+
+/**
+ * `navigator` n'existe pas au rendu serveur. useSyncExternalStore expose un
+ * instantané serveur (`false`) distinct de l'instantané client, donc le premier
+ * rendu concorde et l'hydratation ne peut pas échouer — contrairement à un
+ * `typeof navigator !== "undefined"` évalué directement dans le JSX.
+ */
+const neverChanges = () => () => {};
+const readShareSupport = () =>
+  typeof navigator !== "undefined" && typeof navigator.share === "function";
+const noShareOnServer = () => false;
 
 const TYPE_ICONS: Record<QrType, React.ReactNode> = {
   calendar: <IconCalendar size={16} />,
@@ -88,6 +100,7 @@ export default function Home() {
   // Un payload trop long fait échouer la génération : on coupe les actions qui
   // rendraient une image plutôt que de laisser l'erreur remonter.
   const canRender = Boolean(payload) && !overCapacity;
+  const canShare = useSyncExternalStore(neverChanges, readShareSupport, noShareOnServer);
 
   const switchType = (t: QrType) => {
     setType(t);
@@ -125,6 +138,29 @@ export default function Home() {
         color: "red",
         title: "Copy unavailable",
         message: "This browser cannot copy images — use Export PNG instead.",
+      });
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      // Partager le PNG quand c'est possible ; sinon le payload en texte.
+      if (canRender) {
+        const blob = await renderQrPngBlob(payload, appearance);
+        const file = new File([blob], "qr-code.png", { type: "image/png" });
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], title: "QR Code" });
+          return;
+        }
+      }
+      await navigator.share({ text: payload, title: "QR Code" });
+    } catch (e) {
+      // Fermer la feuille de partage lève AbortError : ce n'est pas un échec.
+      if (e instanceof Error && e.name === "AbortError") return;
+      notifications.show({
+        color: "red",
+        title: "Share failed",
+        message: e instanceof Error ? e.message : "Could not share this QR code.",
       });
     }
   };
@@ -249,11 +285,24 @@ export default function Home() {
                     <Tabs.Tab value="raw">Raw Code</Tabs.Tab>
                   </Tabs.List>
                 </Tabs>
-                {canRender && (
-                  <ThemeIcon color="green" variant="light" radius="xl" aria-label="Payload is ready">
-                    <IconCheck size={16} />
-                  </ThemeIcon>
-                )}
+                <Group gap="xs">
+                  {canShare && (
+                    <ActionIcon
+                      variant="default"
+                      radius="xl"
+                      onClick={handleShare}
+                      disabled={!payload}
+                      aria-label="Share QR code"
+                    >
+                      <IconShare size={16} />
+                    </ActionIcon>
+                  )}
+                  {canRender && (
+                    <ThemeIcon color="green" variant="light" radius="xl" aria-label="Payload is ready">
+                      <IconCheck size={16} />
+                    </ThemeIcon>
+                  )}
+                </Group>
               </Group>
 
               {previewTab === "raw" ? (
