@@ -11,7 +11,6 @@ import {
   Group,
   SegmentedControl,
   Stack,
-  Tabs,
   Text,
   Textarea,
   ThemeIcon,
@@ -70,6 +69,8 @@ const readShareSupport = () =>
   typeof navigator !== "undefined" && typeof navigator.share === "function";
 const noShareOnServer = () => false;
 
+type PreviewTab = "qr" | "raw";
+
 const TYPE_ICONS: Record<QrType, React.ReactNode> = {
   calendar: <IconCalendar size={16} />,
   email: <IconMail size={16} />,
@@ -87,7 +88,7 @@ export default function Home() {
   const [type, setType] = useState<QrType>("person");
   const [formData, setFormData] = useState<QrFormData>(() => defaultDataFor("person"));
   const [appearance, setAppearance] = useState<QrAppearance>(DEFAULT_APPEARANCE);
-  const [previewTab, setPreviewTab] = useState<string | null>("qr");
+  const [previewTab, setPreviewTab] = useState<PreviewTab>("qr");
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const { setColorScheme } = useMantineColorScheme();
@@ -279,12 +280,14 @@ export default function Home() {
             {/* Preview */}
             <Stack gap="md" style={{ minWidth: 0 }}>
               <Group justify="space-between">
-                <Tabs value={previewTab} onChange={setPreviewTab}>
-                  <Tabs.List>
-                    <Tabs.Tab value="qr">QR Code</Tabs.Tab>
-                    <Tabs.Tab value="raw">Raw Code</Tabs.Tab>
-                  </Tabs.List>
-                </Tabs>
+                <SegmentedControl
+                  value={previewTab}
+                  onChange={(v) => setPreviewTab(v as PreviewTab)}
+                  data={[
+                    { value: "qr", label: "QR Code" },
+                    { value: "raw", label: "Raw Code" },
+                  ]}
+                />
                 <Group gap="xs">
                   {canShare && (
                     <ActionIcon
