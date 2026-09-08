@@ -205,9 +205,13 @@ export function appearanceToStylingOptions(
       margin: 6,
       crossOrigin: "anonymous" as const,
     },
+    // `gradient` est toujours présent, à `undefined` en mode solide. Omettre la
+    // clé ne suffit pas : QRCodeStyling.update() fusionne en profondeur, donc un
+    // dégradé posé précédemment survivrait au passage en couleur unie.
     dotsOptions: {
       type: appearance.dotsType,
-      ...(gradient ? { gradient } : { color: appearance.dotsColor }),
+      color: appearance.dotsColor,
+      gradient,
     },
     backgroundOptions: {
       color:
@@ -217,11 +221,13 @@ export function appearanceToStylingOptions(
     },
     cornersSquareOptions: {
       type: appearance.cornersSquareType,
-      ...(gradient ? { gradient } : { color: appearance.dotsColor }),
+      color: appearance.dotsColor,
+      gradient,
     },
     cornersDotOptions: {
       type: appearance.cornersDotType,
-      ...(gradient ? { gradient } : { color: appearance.dotsColor }),
+      color: appearance.dotsColor,
+      gradient,
     },
     image: appearance.logoDataUrl || undefined,
   };

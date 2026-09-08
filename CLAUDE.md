@@ -87,6 +87,8 @@ Calendar times are deliberately *floating local* (`toVEventDate`, no `Z`, no TZI
 
 The library sizes its SVG to the *export* resolution (`appearance.size`, default 640). The `.qr-preview-stage` rule at the bottom of [app/globals.css](app/globals.css) clamps it to the container — without it the preview overflows the layout horizontally.
 
+`appearanceToStylingOptions` must emit **every** optional key on every call, `undefined` included — `gradient` on the three shape sections, and `image`. `QRCodeStyling.update()` deep-merges into the previous options, so a key that is merely *omitted* keeps its old value: dropping `gradient` in solid mode left the previous gradient painted on the code and switching back to a solid colour did nothing. Conditional spreads (`...(x ? {a} : {b})`) are the shape to avoid here. `lib/qr-appearance.test.ts` asserts the keys are present.
+
 **Preview/export parity is the contract here.** The caption used to exist only in the preview, so exported PNGs silently lacked it. Anything added to the preview must also be drawn in `renderQrPngBlob`, and both sides must derive shared values from the same helper — `captionColorFor` and `captionFontSize` in [lib/qr-appearance.ts](lib/qr-appearance.ts) exist so the two cannot drift.
 
 Three traps in the compositing code:

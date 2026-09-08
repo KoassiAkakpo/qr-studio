@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import qrcode from "qrcode-generator";
 import {
+  appearanceToStylingOptions,
   DEFAULT_APPEARANCE,
   QR_BYTE_CAPACITY,
   captionColorFor,
@@ -167,5 +168,57 @@ describe("scanabilityWarnings", () => {
 
   it("n'alerte pas sur une correction faible sans logo", () => {
     expect(scanabilityWarnings({ ...DEFAULT_APPEARANCE, ecl: "L" })).toEqual([]);
+  });
+});
+
+describe("appearanceToStylingOptions", () => {
+  const sections = ["dotsOptions", "cornersSquareOptions", "cornersDotOptions"] as const;
+
+  // QRCodeStyling.update() fusionne en profondeur : omettre `gradient` laisse en
+  // place celui du rendu précédent. La clé doit donc toujours être émise, à
+  // undefined en mode solide, sinon repasser en couleur unie reste sans effet.
+  it.each(sections)("émet la clé gradient à undefined en mode solide (%s)", (section) => {
+    const opts = appearanceToStylingOptions(
+      { ...DEFAULT_APPEARANCE, dotsColorMode: "solid", dotsColor: "#123456" },
+      "x"
+    );
+    expect(section in opts).toBe(true);
+    expect("gradient" in opts[section]).toBe(true);
+    expect(opts[section].gradient).toBeUndefined();
+    expect(opts[section].color).toBe("#123456");
+  });
+
+  it.each(sections)("pose le dégradé en mode gradient (%s)", (section) => {
+    const opts = appearanceToStylingOptions(
+      { ...DEFAULT_APPEARANCE, dotsColorMode: "gradient", gradientType: "radial" },
+      "x"
+    );
+    expect(opts[section].gradient).toMatchObject({ type: "radial" });
+    expect(opts[section].gradient?.colorStops).toHaveLength(2);
+  });
+
+  it("convertit la rotation du dégradé en radians", () => {
+    const opts = appearanceToStylingOptions(
+      { ...DEFAULT_APPEARANCE, dotsColorMode: "gradient", gradientRotation: 180 },
+      "x"
+    );
+    expect(opts.dotsOptions.gradient?.rotation).toBeCloseTo(Math.PI, 6);
+  });
+
+  it("émet toujours la clé image, à undefined sans logo", () => {
+    // Même raison que pour le dégradé : sans la clé, retirer un logo le laisserait
+    // collé au rendu précédent.
+    const opts = appearanceToStylingOptions({ ...DEFAULT_APPEARANCE, logoDataUrl: "" }, "x");
+    expect("image" in opts).toBe(true);
+    expect(opts.image).toBeUndefined();
+  });
+
+  it("reporte le niveau de correction et le fond transparent", () => {
+    const opts = appearanceToStylingOptions(
+      { ...DEFAULT_APPEARANCE, ecl: "H", bgColorMode: "transparent" },
+      "x"
+    );
+    expect(opts.qrOptions.errorCorrectionLevel).toBe("H");
+    expect(opts.backgroundOptions.color).toBe("transparent");
   });
 });
