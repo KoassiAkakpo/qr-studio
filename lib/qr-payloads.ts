@@ -140,6 +140,12 @@ export const QR_TYPE_META: Record<
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
 /**
+ * Ordre d'affichage des types, dérivé des métadonnées plutôt que recopié.
+ * Ajouter un type à `QrType` le fait apparaître ici automatiquement.
+ */
+export const TYPE_ORDER = (Object.keys(QR_TYPE_META) as QrType[]).sort();
+
+/**
  * Échappe une valeur TEXT vCard / iCalendar. Les deux specs partagent les mêmes
  * règles (RFC 6350 §3.4, RFC 5545 §3.3.11) : backslash, point-virgule, virgule et
  * retours ligne. Un retour ligne littéral casserait le payload en produisant une
@@ -534,9 +540,10 @@ export function rowToFormData(
 }
 
 export function labelForRow(type: QrType, data: QrFormData, index: number): string {
+  // Le nom de fichier explicite vient de la colonne du tableur, pas d'ici :
+  // QrFormData n'a pas de champ `filename`. C'est batch-mode qui l'applique.
   const r = data as unknown as Record<string, string>;
   const pick =
-    r.filename ||
     r.url ||
     r.text ||
     r.to ||

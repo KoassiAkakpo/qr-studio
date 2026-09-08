@@ -73,7 +73,7 @@ Testé sur un vrai `.xlsx` : sans `cellDates: true`, `lib/excel.ts` reçoit
 
 | #  | Problème |
 |----|----------|
-| 7  | `gradientType` (radial) et `logoSizeRatio` existent dans le type et les defaults mais **aucun contrôle UI** ; le label dit « Linear gradient » en dur |
+| 7  | ✅ `gradientType` (radial) et `logoSizeRatio` existent dans le type et les defaults mais **aucun contrôle UI** ; le label dit « Linear gradient » en dur |
 | 8  | ✅ Collisions de noms dans le ZIP : deux lignes homonymes → entrées dupliquées, écrasement à l'extraction |
 | 9  | ✅ `parseExcelFile` ne normalise que le trim, pas la casse → `FirstName` ≠ `firstName` → ligne invalide en silence |
 | 10 | ✅ Le template `person` omet `title`, `nickname`, `department`, `address`, `note`, `phoneOther` que `rowToFormData` lit pourtant |
@@ -119,20 +119,20 @@ profil neuf ne le reproduit pas.
 | #  | Problème |
 |----|----------|
 | 16 | ✅ **Aucun test**, alors que `buildQrPayload` et `rowToFormData` sont des fonctions pures — la cible idéale, et précisément là où se nichent les bugs 3/4/5 |
-| 17 | Métadonnées par type éclatées sur 3 fichiers (`QR_TYPE_META`, `TYPE_ORDER`, `TYPE_ICONS`) → un registre unique supprimerait la synchronisation manuelle |
+| 17 | ✅ Métadonnées par type éclatées sur 3 fichiers (`QR_TYPE_META`, `TYPE_ORDER`, `TYPE_ICONS`) → un registre unique supprimerait la synchronisation manuelle |
 | 18 | ✅ Les casts `as unknown as` de `renderQrPngBlob` sont **inutiles** : `DrawType = "canvas" \| "svg"` et `getRawData` sont correctement typés. La note CLAUDE.md qui les dit « load-bearing » est fausse |
-| 19 | `handleDownload` réimplémente `slugify` inline |
-| 20 | Branche `r.filename` morte dans `labelForRow` (`QrFormData` n'a pas ce champ) |
-| 21 | Nouvel objet `appearance` à chaque render du batch → `.update()` sur les 12 aperçus à chaque frappe |
-| 22 | Pas de cleanup dans `QrPreview` → instances `QRCodeStyling` jamais libérées |
-| 23 | `{...appearance, size: appearance.size}` : no-op |
-| 24 | `BatchRow.raw` jamais lu |
-| 25 | `Select` du batch affiche les clés brutes (`url`, `person`) au lieu des labels |
-| 26 | `alert()` au lieu de notifications Mantine |
-| 27 | Breakpoint 1024px en `<style>` inline, désaccordé des breakpoints Mantine |
-| 28 | Logo sans validation taille/type ni gestion d'erreur `FileReader` |
-| 29 | Aucun avertissement logo + ECL faible, aucun contrôle de contraste (blanc sur blanc possible) |
-| 30 | README encore le boilerplate create-next-app |
+| 19 | ✅ `handleDownload` réimplémente `slugify` inline |
+| 20 | ✅ Branche `r.filename` morte dans `labelForRow` (`QrFormData` n'a pas ce champ) |
+| 21 | ✅ Nouvel objet `appearance` à chaque render du batch → `.update()` sur les 12 aperçus à chaque frappe |
+| 22 | ✅ Pas de cleanup dans `QrPreview` → instances `QRCodeStyling` jamais libérées |
+| 23 | ✅ `{...appearance, size: appearance.size}` : no-op |
+| 24 | ✅ `BatchRow.raw` jamais lu |
+| 25 | ✅ `Select` du batch affiche les clés brutes (`url`, `person`) au lieu des labels |
+| 26 | ✅ `alert()` au lieu de notifications Mantine |
+| 27 | ✅ Breakpoint 1024px en `<style>` inline, désaccordé des breakpoints Mantine |
+| 28 | ✅ Logo sans validation taille/type ni gestion d'erreur `FileReader` |
+| 29 | ✅ Aucun avertissement logo + ECL faible, aucun contrôle de contraste (blanc sur blanc possible) |
+| 30 | ✅ README encore le boilerplate create-next-app |
 | 31 | ✅ Batch 500 lignes séquentiel sans annulation ni barre de progression |
 | 32 | ✅ `error` réutilisé pour les warnings → alerte rouge « Note » sur un import réussi |
 
@@ -288,8 +288,33 @@ Hydratation vérifiée en **build de production** sur les quatre états de stock
 (aucun / `dark` / `light` / `auto`) : 0 erreur dans chacun. La console de dev est
 également passée de 2 messages à 0.
 
-### Lot 6 — Nettoyage  ·  #7, #17 à #30
+### ✅ Lot 6 — Nettoyage  ·  #7, #17 à #30
 
-Registre de types unifié, exposition de `gradientType` / `logoSizeRatio`, suppression
-des casts et du code mort, mémoïsation du batch, cleanup `QrPreview`, notifications,
-README, correction de CLAUDE.md.
+**Fait.** 9 tests supplémentaires (95 au total).
+
+- `TYPE_ORDER` est dérivé des clés de `QR_TYPE_META` au lieu d'être recopié.
+  Il ne reste hors de `lib/` que `TYPE_ICONS`, parce que ce sont des JSX — et son
+  type `Record<QrType, ReactNode>` empêche de l'oublier.
+- `gradientType` (linéaire / radial) et `logoSizeRatio` ont enfin des contrôles ;
+  le libellé « Linear gradient » codé en dur est corrigé.
+- `scanabilityWarnings` avertit sous 3:1 de contraste et sur un logo avec une
+  correction d'erreur inférieure à Q. Consultatif, jamais bloquant.
+- Logo : type et taille (2 Mo) vérifiés, erreur `FileReader` gérée.
+- Notifications Mantine à la place des deux `alert()`.
+- Media query sortie du JSX vers `globals.css`, sur le breakpoint Mantine `lg`.
+- Mémoïsation de l'objet d'apparence du batch, nettoyage au démontage de
+  `QrPreview`, `slugify` réutilisé, branche morte de `labelForRow`, champ
+  `BatchRow.raw` et libellés bruts du `Select` supprimés.
+- README réécrit : c'était encore le boilerplate `create-next-app`.
+
+Vérifié dans Chrome :
+
+| Contrôle | Résultat |
+| --- | --- |
+| Sidebar depuis `TYPE_ORDER` dérivé | les 9 types, dans l'ordre |
+| Grille à 1500 px / fenêtre étroite | `220px 680px 420px` / 1 colonne, sans style inline |
+| Tableur déposé comme logo | refusé, « not an image » |
+| Image de 3 Mo | refusée, « Image is 3.0 MB; keep it under 2 MB » |
+| Image valide | logo affiché, curseur de taille, alerte logo + ECL M |
+| Contraste ramené à #f2f2f2 | alerte « hard to scan » mentionnant le contraste |
+| Échec du presse-papier | notification Mantine, plus d'`alert()` |

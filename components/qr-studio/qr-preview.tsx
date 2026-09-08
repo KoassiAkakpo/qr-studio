@@ -75,6 +75,17 @@ export function QrPreview({
 
   const renderError = failure?.signature === signature ? failure.message : null;
 
+  // Le conteneur du QR est retiré du DOM au démontage, mais l'instance garde une
+  // référence sur ses nœuds. La grille du mode batch en monte et démonte douze à
+  // chaque import : on relâche explicitement.
+  useEffect(() => {
+    const container = containerRef.current;
+    return () => {
+      qrRef.current = null;
+      if (container) container.innerHTML = "";
+    };
+  }, []);
+
   const bytes = payloadByteLength(payload);
   const capacity = capacityFor(appearance.ecl);
 

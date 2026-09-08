@@ -1,7 +1,7 @@
 "use client";
 
 import { Select, Stack, Switch, Text, TextInput, Textarea, Title } from "@mantine/core";
-import { isLikelyEmail, type QrFormData, type QrType } from "@/lib/qr-payloads";
+import { isLikelyEmail, type QrFormData } from "@/lib/qr-payloads";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -174,15 +174,3 @@ export function TypeForm({
       );
   }
 }
-
-export const TYPE_ORDER: QrType[] = [
-  "calendar",
-  "email",
-  "location",
-  "person",
-  "phone",
-  "social",
-  "text",
-  "url",
-  "wifi",
-];

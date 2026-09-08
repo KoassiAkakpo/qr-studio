@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# QR Studio
 
-## Getting Started
+A browser-based QR code generator: nine payload types, single or batch, with
+custom colours, gradients, a centre logo, and PNG or ZIP export.
 
-First, run the development server:
+Everything runs in the browser. There is no backend, no account, no upload and
+no telemetry — spreadsheets you import and codes you generate never leave the
+machine.
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Scripts
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Development server |
+| `npm run build` | Production build; also runs the TypeScript check |
+| `npm start` | Serve a production build |
+| `npm run lint` | ESLint |
+| `npm test` | Vitest, once |
+| `npm run test:watch` | Vitest, watch mode |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## What it generates
 
-## Learn More
+| Type | Encoding |
+| --- | --- |
+| URL | the address, with `https://` added when no scheme is given |
+| Text | raw text |
+| Email | `mailto:` with subject and body |
+| Phone / SMS | `tel:` or `smsto:` with a prefilled message |
+| Wi-Fi | `WIFI:` — joins a network without typing the password |
+| Location | `geo:` coordinates, with an optional label |
+| Calendar | a `VEVENT` inside a `VCALENDAR` envelope |
+| Person | vCard 3.0 contact card |
+| Social | a profile link or handle |
 
-To learn more about Next.js, take a look at the following resources:
+Payload building lives in [lib/qr-payloads.ts](lib/qr-payloads.ts) and is covered
+by tests that pin the exact wire format, because these formats break in ways that
+are invisible until someone scans the code with a real phone.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Batch mode
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Pick a type, download the generated `.xlsx` template, fill it in, import it, and
+export a ZIP of PNGs. Up to 500 rows per file.
 
-## Deploy on Vercel
+- Column names are matched case-insensitively.
+- Rows missing or malforming a required field are skipped and listed, rather than
+  failing the whole import.
+- An optional `filename` column names each PNG; duplicates get a numbered suffix
+  so nothing is overwritten in the archive.
+- Every code in a batch uses the current Appearance settings.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Appearance
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Pixel and corner shapes, solid or gradient colours (linear or radial), a
+transparent or solid background, margin, a centre logo with adjustable size, a
+caption drawn beneath the code, error correction level, and export resolution.
+
+The panel warns when a combination is likely to scan badly — pixels too close in
+colour to the background, or a logo with error correction too low to recover the
+modules it covers.
+
+## Stack
+
+Next.js 16 (App Router, React 19), Mantine v9, `qr-code-styling`, JSZip and
+SheetJS. Vitest for tests.
+
+`xlsx` is installed from a vendored archive rather than npm; see
+[vendor/README.md](vendor/README.md) for why and how to update it.
+
+## Project notes
+
+[CLAUDE.md](CLAUDE.md) documents the architecture and the traps worth knowing
+before changing the payload, rendering or batch code. [PLAN.md](PLAN.md) records
+an audit of the codebase and the state of the fixes.

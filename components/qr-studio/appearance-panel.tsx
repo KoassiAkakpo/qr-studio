@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import {
+  Alert,
   ColorInput,
   Divider,
   FileInput,
@@ -15,7 +17,9 @@ import {
   TextInput,
   UnstyledButton,
 } from "@mantine/core";
-import type { QrAppearance } from "@/lib/qr-appearance";
+import { scanabilityWarnings, type QrAppearance } from "@/lib/qr-appearance";
+
+const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -34,15 +38,33 @@ export function AppearancePanel({
 }) {
   const set = (patch: Partial<QrAppearance>) => onChange({ ...value, ...patch });
 
+  const [logoError, setLogoError] = useState("");
+
   const handleLogo = (file: File | null) => {
+    setLogoError("");
     if (!file) {
       set({ logoDataUrl: "" });
       return;
     }
+    if (!file.type.startsWith("image/")) {
+      setLogoError("That file is not an image.");
+      return;
+    }
+    // Le logo est encodé en data URL et embarqué dans chaque rendu : un fichier
+    // volumineux ralentirait tout un export de lot.
+    if (file.size > MAX_LOGO_BYTES) {
+      setLogoError(
+        `Image is ${(file.size / 1024 / 1024).toFixed(1)} MB; keep it under ${MAX_LOGO_BYTES / 1024 / 1024} MB.`
+      );
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => set({ logoDataUrl: String(reader.result ?? "") });
+    reader.onerror = () => setLogoError("Could not read that file.");
     reader.readAsDataURL(file);
   };
+
+  const warnings = scanabilityWarnings(value);
 
   return (
     <Stack gap="md">
@@ -92,14 +114,25 @@ export function AppearancePanel({
       <Stack gap="xs">
         <SectionLabel>Color</SectionLabel>
         <Select
-          label="Pixel color"
+          label="Pixel colour"
           value={value.dotsColorMode}
           onChange={(v) => v && set({ dotsColorMode: v as "solid" | "gradient" })}
           data={[
             { value: "solid", label: "Solid" },
-            { value: "gradient", label: "Linear gradient" },
+            { value: "gradient", label: "Gradient" },
           ]}
         />
+        {value.dotsColorMode === "gradient" && (
+          <Select
+            label="Gradient type"
+            value={value.gradientType}
+            onChange={(v) => v && set({ gradientType: v as QrAppearance["gradientType"] })}
+            data={[
+              { value: "linear", label: "Linear" },
+              { value: "radial", label: "Radial" },
+            ]}
+          />
+        )}
         <Group align="flex-end">
           <ColorInput
             label={value.dotsColorMode === "gradient" ? "Gradient start" : "Pixel colour"}
@@ -146,6 +179,20 @@ export function AppearancePanel({
       <Stack gap="xs">
         <SectionLabel>Logo & frame</SectionLabel>
         <FileInput label="Center logo (PNG/JPG)" placeholder="Pick image" accept="image/*" value={null} onChange={handleLogo} clearable={false} />
+        {logoError && <Text size="xs" c="red">{logoError}</Text>}
+        {value.logoDataUrl && (
+          <>
+            <Text size="sm">Logo size: {Math.round(value.logoSizeRatio * 100)}% of the code</Text>
+            <Slider
+              value={value.logoSizeRatio}
+              min={0.1}
+              max={0.4}
+              step={0.01}
+              label={(v) => `${Math.round(v * 100)}%`}
+              onChange={(v) => set({ logoSizeRatio: v })}
+            />
+          </>
+        )}
         {value.logoDataUrl && (
           <Group>
             <Image src={value.logoDataUrl} alt="logo" h={40} w={40} radius="md" fit="contain" />
@@ -189,6 +236,15 @@ export function AppearancePanel({
           />
         </Group>
       </Stack>
+      {warnings.length > 0 && (
+        <Alert color="yellow" title="This code may be hard to scan">
+          <Stack gap={4}>
+            {warnings.map((w) => (
+              <Text key={w} size="xs">{w}</Text>
+            ))}
+          </Stack>
+        </Alert>
+      )}
     </Stack>
   );
 }

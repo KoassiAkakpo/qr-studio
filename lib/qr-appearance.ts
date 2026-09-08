@@ -104,6 +104,60 @@ export function readableTextColor(background: string): string {
   return luminance > 0.179 ? "#000000" : "#ffffff";
 }
 
+function relativeLuminance(rgb: [number, number, number]) {
+  const [r, g, b] = rgb.map((channel) => {
+    const s = channel / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** Rapport de contraste WCAG entre deux couleurs hex, de 1 (identiques) à 21. */
+export function contrastRatio(a: string, b: string): number {
+  const ca = parseHexColor(a);
+  const cb = parseHexColor(b);
+  if (!ca || !cb) return 1;
+  const [hi, lo] = [relativeLuminance(ca), relativeLuminance(cb)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/** En dessous, les lecteurs peinent à séparer les modules du fond. */
+export const MIN_SCAN_CONTRAST = 3;
+
+/**
+ * Réglages qui produisent un code peu lisible. Purement consultatif : rien n'est
+ * bloqué, mais l'utilisateur ne découvre plus le problème en scannant.
+ */
+export function scanabilityWarnings(appearance: QrAppearance): string[] {
+  const warnings: string[] = [];
+  const background =
+    appearance.bgColorMode === "transparent" ? "#ffffff" : appearance.bgColor;
+
+  // En dégradé, c'est la teinte la moins contrastée qui décide.
+  const foregrounds =
+    appearance.dotsColorMode === "gradient"
+      ? [appearance.dotsColor, appearance.gradientColor2]
+      : [appearance.dotsColor];
+  const worst = Math.min(...foregrounds.map((c) => contrastRatio(c, background)));
+  if (worst < MIN_SCAN_CONTRAST) {
+    warnings.push(
+      `Contrast between the pixels and the background is ${worst.toFixed(1)}:1. ` +
+        `Below ${MIN_SCAN_CONTRAST}:1 many scanners fail — darken the pixels or lighten the background.`
+    );
+  }
+
+  // Un logo masque des modules ; seule la redondance de la correction d'erreur
+  // permet de les reconstituer.
+  if (appearance.logoDataUrl && (appearance.ecl === "L" || appearance.ecl === "M")) {
+    warnings.push(
+      `A centre logo hides part of the code. At error correction ${appearance.ecl} there ` +
+        `may not be enough redundancy to recover it — Q or H is safer.`
+    );
+  }
+
+  return warnings;
+}
+
 /** Couleur de la légende : sur fond transparent, on suppose un support clair. */
 export function captionColorFor(appearance: QrAppearance) {
   return readableTextColor(

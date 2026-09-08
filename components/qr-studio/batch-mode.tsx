@@ -20,21 +20,21 @@ import { parseExcelFile, downloadTemplate } from "@/lib/excel";
 import {
   buildQrPayload,
   labelForRow,
+  QR_TYPE_META,
   rowToFormData,
   templateHeadersFor,
+  TYPE_ORDER,
   type QrFormData,
   type QrType,
 } from "@/lib/qr-payloads";
 import type { QrAppearance } from "@/lib/qr-appearance";
 import { dedupeFilenames, downloadBlob, slugify } from "@/lib/utils";
 import { QrPreview, renderQrPngBlob } from "./qr-preview";
-import { TYPE_ORDER } from "./type-forms";
 
 const MAX_ROWS = 500;
 
 interface BatchRow {
   index: number;
-  raw: Record<string, unknown>;
   data: QrFormData | null;
   payload: string;
   label: string;
@@ -62,6 +62,12 @@ export function BatchMode({
   const cancelRef = useRef(false);
 
   const expected = useMemo(() => templateHeadersFor(type), [type]);
+  // Sans mémoïsation, ce littéral est un nouvel objet à chaque rendu : les douze
+  // aperçus voient leurs dépendances changer et se redessinent pour rien.
+  const previewAppearance = useMemo(
+    () => ({ ...appearance, size: 320, showFrameText: false }),
+    [appearance]
+  );
   const validRows = useMemo(() => rows.filter((r) => r.data && r.payload), [rows]);
   const invalidRows = useMemo(() => rows.filter((r) => !r.data), [rows]);
 
@@ -98,7 +104,7 @@ export function BatchMode({
         const payload = data ? buildQrPayload(data) : "";
         const label = data ? labelForRow(type, data, i) : `row-${i + 1} (invalid)`;
         const explicit = String(r["filename"] ?? "").trim();
-        return { index: i, raw: r, data, payload, label, base: `${slugify(explicit || label, `${type}-${i + 1}`)}.png` };
+        return { index: i, data, payload, label, base: `${slugify(explicit || label, `${type}-${i + 1}`)}.png` };
       });
 
       // Les noms ne sont dédupliqués qu'entre les lignes réellement exportées,
@@ -170,7 +176,7 @@ export function BatchMode({
               label="QR type"
               value={type}
               onChange={(v) => { if (v) { onTypeChange(v as QrType); reset(); } }}
-              data={TYPE_ORDER.map((t) => ({ value: t, label: t }))}
+              data={TYPE_ORDER.map((t) => ({ value: t, label: QR_TYPE_META[t].label }))}
             />
             <div style={{ background: "var(--mantine-color-default-hover)", borderRadius: 8, padding: 12 }}>
               <Text size="xs" fw={600}>Expected columns:</Text>
@@ -246,7 +252,7 @@ export function BatchMode({
               {validRows.slice(0, 12).map((r) => (
                 <Card key={r.index} withBorder radius="md" p="sm">
                   <Stack gap="xs">
-                    <QrPreview payload={r.payload} appearance={{ ...appearance, size: 320, showFrameText: false }} compact />
+                    <QrPreview payload={r.payload} appearance={previewAppearance} compact />
                     <Text size="xs" fw={600} truncate title={r.label}>{r.label}</Text>
                     <Text size="xs" c="dimmed" truncate ff="monospace" title={r.filename}>{r.filename}</Text>
                     <Button variant="outline" size="xs" fullWidth onClick={() => downloadSingle(r)}>

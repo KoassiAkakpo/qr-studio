@@ -37,11 +37,13 @@ import {
   IconUser,
   IconWifi,
 } from "@tabler/icons-react";
-import { downloadBlob } from "@/lib/utils";
+import { notifications } from "@mantine/notifications";
+import { downloadBlob, slugify } from "@/lib/utils";
 import {
   buildQrPayload,
   defaultDataFor,
   QR_TYPE_META,
+  TYPE_ORDER,
   type QrFormData,
   type QrType,
 } from "@/lib/qr-payloads";
@@ -52,7 +54,7 @@ import {
   payloadByteLength,
   type QrAppearance,
 } from "@/lib/qr-appearance";
-import { TypeForm, TYPE_ORDER } from "@/components/qr-studio/type-forms";
+import { TypeForm } from "@/components/qr-studio/type-forms";
 import { QrPreview, renderQrPngBlob } from "@/components/qr-studio/qr-preview";
 import { AppearancePanel } from "@/components/qr-studio/appearance-panel";
 import { BatchMode } from "@/components/qr-studio/batch-mode";
@@ -99,11 +101,15 @@ export default function Home() {
       const blob = await renderQrPngBlob(payload, appearance);
       const base =
         formData.type === "person"
-          ? `${(formData.firstName || "").trim()}-${(formData.lastName || "").trim()}`.replace(/^-|-$/g, "") || "contact"
+          ? `${formData.firstName} ${formData.lastName}`
           : payload.slice(0, 30);
-      downloadBlob(blob, `qr-${type}-${base.replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40) || "code"}.png`);
+      downloadBlob(blob, `qr-${type}-${slugify(base, "code")}.png`);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Export failed.");
+      notifications.show({
+        color: "red",
+        title: "Export failed",
+        message: e instanceof Error ? e.message : "Could not export this QR code.",
+      });
     } finally {
       setBusy(false);
     }
@@ -116,7 +122,11 @@ export default function Home() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      alert("Copy image not supported in this browser — use Download PNG instead.");
+      notifications.show({
+        color: "red",
+        title: "Copy unavailable",
+        message: "This browser cannot copy images — use Export PNG instead.",
+      });
     }
   };
 
@@ -221,15 +231,7 @@ export default function Home() {
         {mode === "batch" ? (
           <BatchMode type={type} onTypeChange={switchType} appearance={appearance} />
         ) : (
-          <div
-            style={{
-              display: "grid",
-              gap: 24,
-              gridTemplateColumns: "220px minmax(0, 1fr) minmax(0, 420px)",
-              alignItems: "start",
-            }}
-            className="qr-single-grid"
-          >
+          <div className="qr-single-grid">
             {/* Sidebar */}
             <Card withBorder radius="md" p="xs" style={{ position: "sticky", top: 76 }}>
               <Stack gap={2}>
@@ -310,12 +312,8 @@ export default function Home() {
           <Text size="xs" c="dimmed">
             QR Studio · Mantine v9 · encodings: URL, Text, Email (mailto:), Phone/SMS (tel:/smsto:), Wi-Fi (WIFI:), Location (geo:), Calendar (VEVENT), Person (vCard 3.0), Social links · PNG export
           </Text>
-          <Text size="xs" c="dimmed" mt={4} className="qr-single-grid-hint">
-            Tip: sidebar stacks below on narrow screens via responsive CSS.
-          </Text>
         </Container>
       </Box>
-      <style>{`@media (max-width: 1024px) { .qr-single-grid { grid-template-columns: 1fr !important; } }`}</style>
     </Box>
   );
 }

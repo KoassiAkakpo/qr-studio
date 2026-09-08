@@ -22,3 +22,18 @@ body {
   height: auto !important;
   display: block;
 }
+
+/* Mise en page de l'onglet Single : barre latérale + formulaire + aperçu.
+   Sous le breakpoint Mantine lg (75em), les trois colonnes s'empilent. */
+.qr-single-grid {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+  grid-template-columns: 220px minmax(0, 1fr) minmax(0, 420px);
+}
+
+@media (max-width: 75em) {
+  .qr-single-grid {
+    grid-template-columns: 1fr;
+  }
+}

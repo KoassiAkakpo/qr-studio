@@ -6,7 +6,9 @@ import {
   createTheme,
   mantineHtmlProps,
 } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
 import "@mantine/core/styles.css";
+import "@mantine/notifications/styles.css";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -43,6 +45,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body>
         <MantineProvider theme={theme} defaultColorScheme="auto">
+          <Notifications position="top-right" />
           {children}
         </MantineProvider>
       </body>

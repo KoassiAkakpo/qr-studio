@@ -47,8 +47,10 @@ Almost every change touches one of two independent concerns, and keeping them se
 `QrType` is a 9-member union and `QrFormData` is a discriminated union on `type`. Because the switch statements return from every branch with no `default`, adding a member to `QrType` makes TypeScript flag every place that must be updated. Expect to touch all of these:
 
 - [lib/qr-payloads.ts](lib/qr-payloads.ts): the `QrType` union, a `…Data` interface, a `QrFormData` arm, `QR_TYPE_META` (label/placeholder/hint), `defaultDataFor`, `buildQrPayload`, and the three batch helpers `templateHeadersFor` / `templateRowFor` / `rowToFormData`.
-- [components/qr-studio/type-forms.tsx](components/qr-studio/type-forms.tsx): a `TypeForm` case and an entry in `TYPE_ORDER` (which drives both the sidebar and the batch type `Select`).
-- [app/page.tsx](app/page.tsx): an entry in `TYPE_ICONS`.
+- [components/qr-studio/type-forms.tsx](components/qr-studio/type-forms.tsx): a `TypeForm` case.
+- [app/page.tsx](app/page.tsx): an entry in `TYPE_ICONS` — the only thing left outside `lib/`, because icons are JSX. It is typed `Record<QrType, ReactNode>`, so TypeScript refuses to compile until you add it.
+
+`TYPE_ORDER` is derived from `QR_TYPE_META`'s keys, not maintained by hand, and drives both the sidebar and the batch `Select`. A new type appears in both automatically.
 
 Encoding conventions established in `buildQrPayload`: `mailto:` built by hand with `encodeURIComponent` (**never `URLSearchParams`** — it encodes spaces as `+`, which mail clients show literally), `tel:`/`smsto:`, `WIFI:` with `escapeWifi`, `geo:`, `VEVENT` inside a full `VCALENDAR` envelope, vCard 3.0. `ensureUrl` prepends `https://` only when no scheme is present.
 
@@ -123,5 +125,8 @@ Accessibility conventions worth keeping: decorative icons use `ThemeIcon` (a `di
 - Path alias `@/*` maps to the repo root: `@/lib/...`, `@/components/...`.
 - Every component under `components/qr-studio/` is `"use client"`, as is `app/page.tsx`.
 - `lib/utils.ts` holds exactly two helpers: `downloadBlob` (anchor-click + delayed `revokeObjectURL`) and `slugify`. Reuse them for any new download path instead of re-rolling the anchor dance.
-- Browser-API features degrade rather than throw: `handleCopyImage` falls back to an alert, `handleShare` falls back to `navigator.share` with text and then to copying raw text.
+- Browser-API features degrade rather than throw: `handleCopyImage` reports through a Mantine notification, `handleShare` falls back to `navigator.share` with text and then to copying raw text. Use `notifications.show` for user-facing failures — never `alert()`.
+- Responsive rules belong in [app/globals.css](app/globals.css), keyed to Mantine's breakpoints (`75em` is `lg`). An inline `<style>` in JSX gets hoisted by React 19 and drifts from the rest of the layout.
+- `scanabilityWarnings` in [lib/qr-appearance.ts](lib/qr-appearance.ts) is advisory only: it flags foreground/background contrast under 3:1 and a logo with error correction below Q, but never blocks an export. Keep it pure so it stays testable.
+- Objects passed as props to `QrPreview` must be memoised. A fresh `{...appearance, size: 320}` literal per render changes the effect's dependencies and redraws every preview in the batch grid on each keystroke.
 - `defaultDataFor` returns fully populated sample data (a real-looking vCard, a dated event) so the preview is never empty on load — keep that habit for new types.
