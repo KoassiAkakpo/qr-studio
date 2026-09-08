@@ -83,7 +83,7 @@ Testé sur un vrai `.xlsx` : sans `cellDates: true`, `lib/excel.ts` reçoit
 
 ## P2 — Sécurité
 
-### 12. `xlsx@0.18.5` : 2 CVE high, sans correctif sur npm **[vérifié via npm audit]**
+### ✅ 12. `xlsx@0.18.5` : 2 CVE high, sans correctif sur npm **[vérifié via npm audit]**
 
 Prototype pollution ([GHSA-4r6h-8v6p-xvw6](https://github.com/advisories/GHSA-4r6h-8v6p-xvw6))
 et ReDoS ([GHSA-5pgg-2g8v-p4x9](https://github.com/advisories/GHSA-5pgg-2g8v-p4x9)),
@@ -188,10 +188,33 @@ pouvaient pas voir : `ImageBitmap.close()` remet `width`/`height` à 0, et la
 première version lisait `bitmap.height` après la fermeture — la légende était
 dessinée par-dessus le QR.
 
-### Lot 3 — Sécurité  ·  #12
+### ✅ Lot 3 — Sécurité  ·  #12
 
-Migrer `xlsx` vers le registre SheetJS, revérifier `npm audit`. Commit isolé :
-c'est un changement de source de dépendance.
+**Fait.** `npm audit` passe de 1 vulnérabilité *high* (2 avis) à **0**.
+
+`xlsx` 0.18.5 → 0.20.3 : la prototype pollution est corrigée en 0.19.3, la ReDoS
+en 0.20.2. Le registre npm s'arrête à 0.18.5, SheetJS ne publiant plus dessus.
+
+La configuration npm de cet environnement refuse les archives distantes
+(`EALLOWREMOTE`), donc l'archive officielle est **committée dans `vendor/`** et
+référencée par `"xlsx": "file:vendor/xlsx-0.20.3.tgz"`. L'archive de l'éditeur a
+été préférée à une republication tierce sur npm (`@e965/xlsx`) pour ne pas
+déplacer la confiance vers un intermédiaire. Provenance, sha256 et procédure de
+mise à jour dans `vendor/README.md`.
+
+`lib/excel.test.ts` (10 tests) a été écrit **avant** la migration et exécuté sur
+0.18.5 pour capturer le comportement de référence : il fait passer de vrais
+classeurs par `parseExcelFile`. Les 62 tests passent à l'identique après
+migration, ce qui prouve l'absence de changement de comportement plutôt que de
+le supposer.
+
+Vérifications supplémentaires : `npm ci` depuis un `node_modules` vide restitue
+bien 0.20.3 (le vrai risque d'une dépendance `file:`), et `XLSX.writeFile` —
+seule API non couverte par les tests car navigateur uniquement — produit dans
+Chrome un blob de 17 054 octets dont l'en-tête `50 4b 03 04` confirme un xlsx
+valide.
+
+Coût assumé : 2,3 Mo de binaire versionné dans le dépôt.
 
 ### Lot 4 — Batch fiable  ·  #8, #9, #10, #11, #31, #32
 

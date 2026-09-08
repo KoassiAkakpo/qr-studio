@@ -69,6 +69,10 @@ Calendar times are deliberately *floating local* (`toVEventDate`, no `Z`, no TZI
 - An optional `filename` column overrides the derived name (`labelForRow` → `slugify`).
 - ZIP export renders rows sequentially and reports progress through a string state; it is `await`-per-row on purpose to keep the tab responsive.
 
+**`xlsx` is vendored, not installed from npm.** `package.json` points at `file:vendor/xlsx-0.20.3.tgz`, the publisher's own archive. Never "fix" this by running `npm install xlsx` — the npm registry stops at 0.18.5, which carries two unpatched high-severity advisories (prototype pollution, ReDoS) in the code path that parses user-supplied spreadsheets. [vendor/README.md](vendor/README.md) records the provenance, the sha256, and the upgrade procedure. `npm audit` must stay at zero.
+
+`lib/excel.test.ts` runs real workbooks through `parseExcelFile`, so it is the guard that makes changing the spreadsheet library verifiable rather than a guess. `XLSX.writeFile` (used by `downloadTemplate`) is browser-only and therefore not covered — check it by hand in the batch tab after any version bump.
+
 ### Rendering and export
 
 `qr-code-styling` is used two different ways from [components/qr-studio/qr-preview.tsx](components/qr-studio/qr-preview.tsx):
