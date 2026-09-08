@@ -30,7 +30,6 @@ import {
   IconMoon,
   IconPhone,
   IconQrcode,
-  IconShare,
   IconShare2,
   IconSun,
   IconLetterT,
@@ -136,28 +135,6 @@ export default function Home() {
     setTimeout(() => setCopied(false), 1500);
   };
 
-  const handleShare = async () => {
-    try {
-      // Le partage de fichier n'est tenté que si l'image peut réellement être
-      // produite ; sinon on retombe sur le texte au lieu d'échouer en silence.
-      if (canRender) {
-        const blob = await renderQrPngBlob(payload, appearance);
-        const file = new File([blob], "qr-code.png", { type: "image/png" });
-        if (navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ files: [file], title: "QR Code" });
-          return;
-        }
-      }
-      if (navigator.share) {
-        await navigator.share({ text: payload, title: "QR Code" });
-      } else {
-        handleCopyRaw();
-      }
-    } catch {
-      /* user cancelled */
-    }
-  };
-
   return (
     <Box mih="100vh">
       {/* Header */}
@@ -180,7 +157,6 @@ export default function Home() {
                 <IconQrcode size={20} />
               </ThemeIcon>
               <Title order={4}>QR Studio</Title>
-              <Badge variant="light" visibleFrom="sm">9 types · single + batch · Mantine v9</Badge>
             </Group>
             <Group gap="xs" wrap="wrap">
               {/* Les deux icônes sont rendues et c'est le CSS qui en masque une.
@@ -213,9 +189,6 @@ export default function Home() {
                   </Button>
                   <Button variant="outline" size="xs" onClick={handleCopyImage} disabled={!canRender} leftSection={copied ? <IconCheck size={14} /> : <IconCopy size={14} />}>
                     Copy PNG
-                  </Button>
-                  <Button variant="outline" size="xs" onClick={handleShare} leftSection={<IconShare size={14} />}>
-                    Share
                   </Button>
                   <Button size="xs" onClick={handleDownload} disabled={busy || !canRender} loading={busy} leftSection={<IconDownload size={14} />}>
                     Export PNG

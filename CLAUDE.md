@@ -127,7 +127,7 @@ Accessibility conventions worth keeping: decorative icons use `ThemeIcon` (a `di
 - Path alias `@/*` maps to the repo root: `@/lib/...`, `@/components/...`.
 - Every component under `components/qr-studio/` is `"use client"`, as is `app/page.tsx`.
 - `lib/utils.ts` holds exactly two helpers: `downloadBlob` (anchor-click + delayed `revokeObjectURL`) and `slugify`. Reuse them for any new download path instead of re-rolling the anchor dance.
-- Browser-API features degrade rather than throw: `handleCopyImage` reports through a Mantine notification, `handleShare` falls back to `navigator.share` with text and then to copying raw text. Use `notifications.show` for user-facing failures — never `alert()`.
+- Browser-API features degrade rather than throw: `handleCopyImage` reports through a Mantine notification when the clipboard refuses an image. Use `notifications.show` for user-facing failures — never `alert()`.
 - Responsive rules belong in [app/globals.css](app/globals.css), keyed to Mantine's breakpoints (`75em` is `lg`). An inline `<style>` in JSX gets hoisted by React 19 and drifts from the rest of the layout.
 - `scanabilityWarnings` in [lib/qr-appearance.ts](lib/qr-appearance.ts) is advisory only: it flags foreground/background contrast under 3:1 and a logo with error correction below Q, but never blocks an export. Keep it pure so it stays testable.
 - Objects passed as props to `QrPreview` must be memoised. A fresh `{...appearance, size: 320}` literal per render changes the effect's dependencies and redraws every preview in the batch grid on each keystroke.
