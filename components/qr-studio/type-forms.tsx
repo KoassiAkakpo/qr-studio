@@ -129,32 +129,33 @@ export function TypeForm({
         <Stack gap="lg">
           <Section title="Titles">
             <Stack gap="sm" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <TextInput placeholder="First name" value={data.firstName} onChange={(e) => set({ firstName: e.currentTarget.value })} />
-              <TextInput placeholder="Last name" value={data.lastName} onChange={(e) => set({ lastName: e.currentTarget.value })} />
+              <TextInput aria-label="First name" placeholder="First name" value={data.firstName} onChange={(e) => set({ firstName: e.currentTarget.value })} />
+              <TextInput aria-label="Last name" placeholder="Last name" value={data.lastName} onChange={(e) => set({ lastName: e.currentTarget.value })} />
             </Stack>
-            <TextInput placeholder="Title (e.g. Dr.)" value={data.title} onChange={(e) => set({ title: e.currentTarget.value })} />
-            <TextInput placeholder="Nickname" value={data.nickname} onChange={(e) => set({ nickname: e.currentTarget.value })} />
+            <TextInput aria-label="Title (e.g. Dr.)" placeholder="Title (e.g. Dr.)" value={data.title} onChange={(e) => set({ title: e.currentTarget.value })} />
+            <TextInput aria-label="Nickname" placeholder="Nickname" value={data.nickname} onChange={(e) => set({ nickname: e.currentTarget.value })} />
           </Section>
           <Section title="Work">
-            <TextInput placeholder="Company" value={data.organization} onChange={(e) => set({ organization: e.currentTarget.value })} />
-            <TextInput placeholder="Job title" value={data.jobTitle} onChange={(e) => set({ jobTitle: e.currentTarget.value })} />
-            <TextInput placeholder="Department" value={data.department} onChange={(e) => set({ department: e.currentTarget.value })} />
+            <TextInput aria-label="Company" placeholder="Company" value={data.organization} onChange={(e) => set({ organization: e.currentTarget.value })} />
+            <TextInput aria-label="Job title" placeholder="Job title" value={data.jobTitle} onChange={(e) => set({ jobTitle: e.currentTarget.value })} />
+            <TextInput aria-label="Department" placeholder="Department" value={data.department} onChange={(e) => set({ department: e.currentTarget.value })} />
           </Section>
           <Section title="Phone numbers">
-            <TextInput placeholder="Work phone" value={data.phoneWork} onChange={(e) => set({ phoneWork: e.currentTarget.value })} />
-            <TextInput placeholder="Mobile phone" value={data.phoneMobile} onChange={(e) => set({ phoneMobile: e.currentTarget.value })} />
-            <TextInput placeholder="Other phone" value={data.phoneOther} onChange={(e) => set({ phoneOther: e.currentTarget.value })} />
+            <TextInput aria-label="Work phone" placeholder="Work phone" value={data.phoneWork} onChange={(e) => set({ phoneWork: e.currentTarget.value })} />
+            <TextInput aria-label="Mobile phone" placeholder="Mobile phone" value={data.phoneMobile} onChange={(e) => set({ phoneMobile: e.currentTarget.value })} />
+            <TextInput aria-label="Other phone" placeholder="Other phone" value={data.phoneOther} onChange={(e) => set({ phoneOther: e.currentTarget.value })} />
           </Section>
           <Section title="Contact">
             <TextInput
+              aria-label="Email"
               placeholder="Email"
               value={data.email}
               onChange={(e) => set({ email: e.currentTarget.value })}
               error={data.email.trim() && !isLikelyEmail(data.email) ? "Doesn't look like an email address" : undefined}
             />
-            <TextInput placeholder="Website" value={data.website} onChange={(e) => set({ website: e.currentTarget.value })} />
-            <TextInput placeholder="Address" value={data.address} onChange={(e) => set({ address: e.currentTarget.value })} />
-            <Textarea rows={2} placeholder="Notes" value={data.note} onChange={(e) => set({ note: e.currentTarget.value })} />
+            <TextInput aria-label="Website" placeholder="Website" value={data.website} onChange={(e) => set({ website: e.currentTarget.value })} />
+            <TextInput aria-label="Address" placeholder="Address" value={data.address} onChange={(e) => set({ address: e.currentTarget.value })} />
+            <Textarea rows={2} aria-label="Notes" placeholder="Notes" value={data.note} onChange={(e) => set({ note: e.currentTarget.value })} />
           </Section>
         </Stack>
       );

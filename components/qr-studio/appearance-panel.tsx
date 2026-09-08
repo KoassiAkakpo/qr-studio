@@ -100,12 +100,21 @@ export function AppearancePanel({
             { value: "gradient", label: "Linear gradient" },
           ]}
         />
-        <Group>
-          <ColorInput value={value.dotsColor} onChange={(v) => set({ dotsColor: v })} />
+        <Group align="flex-end">
+          <ColorInput
+            label={value.dotsColorMode === "gradient" ? "Gradient start" : "Pixel colour"}
+            value={value.dotsColor}
+            onChange={(v) => set({ dotsColor: v })}
+          />
           {value.dotsColorMode === "gradient" && (
             <>
-              <ColorInput value={value.gradientColor2} onChange={(v) => set({ gradientColor2: v })} />
+              <ColorInput
+                label="Gradient end"
+                value={value.gradientColor2}
+                onChange={(v) => set({ gradientColor2: v })}
+              />
               <NumberInput
+                label="Rotation"
                 value={value.gradientRotation}
                 onChange={(v) => set({ gradientRotation: Number(v) || 0 })}
                 w={90}
@@ -124,7 +133,11 @@ export function AppearancePanel({
           ]}
         />
         {value.bgColorMode === "solid" && (
-          <ColorInput value={value.bgColor} onChange={(v) => set({ bgColor: v })} />
+          <ColorInput
+            label="Background colour"
+            value={value.bgColor}
+            onChange={(v) => set({ bgColor: v })}
+          />
         )}
       </Stack>
 
@@ -143,7 +156,12 @@ export function AppearancePanel({
         )}
         <Switch label="Caption under QR" checked={value.showFrameText} onChange={(e) => set({ showFrameText: e.currentTarget.checked })} />
         {value.showFrameText && (
-          <TextInput value={value.frameText} onChange={(e) => set({ frameText: e.currentTarget.value })} placeholder="Scan for…" />
+          <TextInput
+            aria-label="Caption text"
+            value={value.frameText}
+            onChange={(e) => set({ frameText: e.currentTarget.value })}
+            placeholder="Scan for…"
+          />
         )}
       </Stack>
 

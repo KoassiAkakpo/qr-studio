@@ -14,7 +14,10 @@ import {
   Tabs,
   Text,
   Textarea,
+  ThemeIcon,
   Title,
+  useComputedColorScheme,
+  useMantineColorScheme,
 } from "@mantine/core";
 import {
   IconCalendar,
@@ -24,10 +27,12 @@ import {
   IconLink,
   IconMail,
   IconMapPin,
+  IconMoon,
   IconPhone,
   IconQrcode,
   IconShare,
   IconShare2,
+  IconSun,
   IconLetterT,
   IconUser,
   IconWifi,
@@ -72,6 +77,8 @@ export default function Home() {
   const [previewTab, setPreviewTab] = useState<string | null>("qr");
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
+  const { setColorScheme } = useMantineColorScheme();
+  const computedScheme = useComputedColorScheme("light", { getInitialValueInEffect: true });
 
   const payload = useMemo(() => buildQrPayload(formData), [formData]);
   const bytes = payloadByteLength(payload);
@@ -147,18 +154,40 @@ export default function Home() {
       <Box
         pos="sticky"
         top={0}
-        style={{ zIndex: 20, borderBottom: "1px solid var(--mantine-color-gray-3)", background: "rgba(255,255,255,0.9)", backdropFilter: "blur(6px)" }}
+        style={{
+          zIndex: 20,
+          borderBottom: "1px solid var(--mantine-color-default-border)",
+          // Suit le schéma de couleurs au lieu d'un blanc figé, tout en gardant
+          // la translucidité du bandeau collant.
+          background: "color-mix(in srgb, var(--mantine-color-body) 85%, transparent)",
+          backdropFilter: "blur(6px)",
+        }}
       >
         <Container size={1400} py="sm">
           <Group justify="space-between" wrap="wrap" gap="sm">
             <Group gap="sm">
-              <ActionIcon size="lg" radius="md" variant="filled" style={{ pointerEvents: "none" }}>
+              <ThemeIcon size="lg" radius="md" variant="filled">
                 <IconQrcode size={20} />
-              </ActionIcon>
+              </ThemeIcon>
               <Title order={4}>QR Studio</Title>
               <Badge variant="light" visibleFrom="sm">9 types · single + batch · Mantine v9</Badge>
             </Group>
             <Group gap="xs" wrap="wrap">
+              {/* Les deux icônes sont rendues et c'est le CSS qui en masque une.
+                  Choisir en JS ferait diverger le rendu serveur du premier rendu
+                  client dès qu'un thème explicite est stocké, et l'hydratation
+                  échouerait. Le schéma calculé ne sert que dans le gestionnaire
+                  de clic, où il n'influence aucun rendu. */}
+              <ActionIcon
+                variant="default"
+                size="lg"
+                radius="md"
+                onClick={() => setColorScheme(computedScheme === "dark" ? "light" : "dark")}
+                aria-label="Toggle colour scheme"
+              >
+                <IconSun size={18} className="mantine-light-hidden" />
+                <IconMoon size={18} className="mantine-dark-hidden" />
+              </ActionIcon>
               <SegmentedControl
                 value={mode}
                 onChange={(v) => setMode(v as "single" | "batch")}
@@ -246,9 +275,9 @@ export default function Home() {
                   </Tabs.List>
                 </Tabs>
                 {canRender && (
-                  <ActionIcon color="green" variant="light" radius="xl" style={{ pointerEvents: "none" }}>
+                  <ThemeIcon color="green" variant="light" radius="xl" aria-label="Payload is ready">
                     <IconCheck size={16} />
-                  </ActionIcon>
+                  </ThemeIcon>
                 )}
               </Group>
 
@@ -276,7 +305,7 @@ export default function Home() {
         )}
       </Container>
 
-      <Box py="md" ta="center" style={{ borderTop: "1px solid var(--mantine-color-gray-3)" }}>
+      <Box py="md" ta="center" style={{ borderTop: "1px solid var(--mantine-color-default-border)" }}>
         <Container size={1400}>
           <Text size="xs" c="dimmed">
             QR Studio · Mantine v9 · encodings: URL, Text, Email (mailto:), Phone/SMS (tel:/smsto:), Wi-Fi (WIFI:), Location (geo:), Calendar (VEVENT), Person (vCard 3.0), Social links · PNG export

@@ -172,7 +172,7 @@ export function BatchMode({
               onChange={(v) => { if (v) { onTypeChange(v as QrType); reset(); } }}
               data={TYPE_ORDER.map((t) => ({ value: t, label: t }))}
             />
-            <div style={{ background: "var(--mantine-color-gray-1)", borderRadius: 8, padding: 12 }}>
+            <div style={{ background: "var(--mantine-color-default-hover)", borderRadius: 8, padding: 12 }}>
               <Text size="xs" fw={600}>Expected columns:</Text>
               <Text size="xs" ff="monospace" mt={4}>{expected.join(", ")}</Text>
             </div>

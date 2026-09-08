@@ -97,9 +97,20 @@ officiel (`https://cdn.sheetjs.com/xlsx-0.20.x`) ou basculer sur `exceljs`.
 
 | #  | Problème |
 |----|----------|
-| 13 | Le header code en dur `rgba(255,255,255,0.9)` et le caption utilise `c="black"` → illisibles en dark. `ColorSchemeScript` est posé mais aucun toggle n'existe : dark mode à moitié câblé |
-| 14 | Deux `ActionIcon` décoratifs avec `pointerEvents: "none"` → des `<button>` focusables au clavier mais inertes |
-| 15 | Les `ColorInput` et le `NumberInput` de rotation n'ont aucun label |
+| 13 | ✅ Le header code en dur `rgba(255,255,255,0.9)` et le caption utilise `c="black"` → illisibles en dark. `ColorSchemeScript` est posé mais aucun toggle n'existe : dark mode à moitié câblé |
+| 14 | ✅ Deux `ActionIcon` décoratifs avec `pointerEvents: "none"` → des `<button>` focusables au clavier mais inertes |
+| 15 | ✅ Les `ColorInput` et le `NumberInput` de rotation n'ont aucun label |
+
+### ✅ 33. Échec d'hydratation quand un thème sombre est stocké **[découvert au lot 5]**
+
+Non repéré à l'audit initial, qui n'avait pas fait tourner l'app dans un navigateur.
+`useComputedColorScheme` renvoie la valeur stockée dès le premier rendu client —
+`getInitialValueInEffect` ne diffère que la media query, pas `localStorage` — donc
+tout embranchement JSX sur le schéma fait diverger serveur et client. React
+régénérait alors tout l'arbre côté client (erreur #418), en production comme en dev.
+
+Le cas ne se manifeste **que** lorsqu'un thème explicite « dark » est stocké : un
+profil neuf ne le reproduit pas.
 
 ---
 
@@ -245,10 +256,37 @@ Vérifié dans Chrome via CDP, avec de vrais classeurs téléversés par
 | 505 lignes | 500 valides, avertissement de troncature, aucune erreur rouge |
 | Annulation en cours d'export | barre à « 5 / 40 rendered », puis UI réinitialisée et **aucun ZIP produit** |
 
-### Lot 5 — Dark mode + a11y  ·  #13, #14, #15
+### ✅ Lot 5 — Dark mode + a11y  ·  #13, #14, #15 (+ #33)
 
-Tokens Mantine partout, toggle de thème, `ThemeIcon` pour le décoratif, labels sur
-tous les inputs.
+**Fait.** Aucun test unitaire ajouté : ces défauts ne vivent que dans le rendu
+navigateur, où ils ont été vérifiés.
+
+- Couleurs de l'habillage issues des tokens sémantiques (`--mantine-color-body`,
+  `--mantine-color-default-border`, `--mantine-color-default-hover`). L'en-tête
+  collant garde sa translucidité via `color-mix()` tout en suivant le schéma.
+- Schéma en `auto` par défaut (suit l'OS) et bouton de bascule dans l'en-tête,
+  persisté par Mantine.
+- `ThemeIcon` remplace les `ActionIcon` décoratifs rendus inertes par
+  `pointerEvents: "none"`, qui restaient focusables au clavier.
+- Labels visibles sur les entrées couleur et la rotation ; `aria-label` sur les
+  14 champs de la fiche contact, qui n'ont qu'un placeholder par choix de design.
+
+Mesures dans Chrome :
+
+| | clair | sombre |
+|---|---|---|
+| Fond effectif de l'en-tête | `[255,255,255]` | `[36,36,36]` |
+| Contraste titre / en-tête | 21 | 9,37 |
+| Contraste corps / fond | 21 | 9,37 |
+
+(AA exige 4,5.) Boutons focusables mais inertes : **0**. Champs sans nom
+accessible : **0** — le seul restant est l'`input[type=file]` natif que Mantine
+masque en `display:none`, hors de l'arbre d'accessibilité. Les 5 boutons sans
+libellé sont des internes Mantine (pipettes `ColorInput`, chevrons `NumberInput`).
+
+Hydratation vérifiée en **build de production** sur les quatre états de stockage
+(aucun / `dark` / `light` / `auto`) : 0 erreur dans chacun. La console de dev est
+également passée de 2 messages à 0.
 
 ### Lot 6 — Nettoyage  ·  #7, #17 à #30
 

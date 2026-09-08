@@ -105,7 +105,16 @@ PostCSS runs `postcss-preset-mantine`, then `postcss-simple-vars` supplying the 
 
 The Geist fonts reach the page through the Mantine theme, not a CSS framework: `createTheme` in `app/layout.tsx` points `fontFamily`, `fontFamilyMonospace` and `headings.fontFamily` at the `--font-geist-*` variables that `next/font` defines via the `<html>` className. Removing either half silently falls back to Mantine's system stack.
 
-`app/layout.tsx` must also keep `mantineHtmlProps` on `<html>` and `<ColorSchemeScript />` in `<head>`. Note the app has no color-scheme toggle and the header hardcodes a light background, so dark mode is not actually wired up.
+`app/layout.tsx` must also keep `mantineHtmlProps` on `<html>` and `<ColorSchemeScript defaultColorScheme="auto" />` in `<head>`, with the same `defaultColorScheme` on `MantineProvider`.
+
+### Dark mode
+
+The scheme follows the OS by default and the header toggle overrides it, persisted by Mantine in `localStorage`. Two rules keep it working:
+
+- **Chrome colours come from semantic tokens**, never from a fixed value or a numbered shade: `var(--mantine-color-body)`, `--mantine-color-text`, `--mantine-color-default-border`, `--mantine-color-default-hover`. A `gray-1` surface or a literal `rgba(255,255,255,…)` is invisible in dark mode. The translucent sticky header uses `color-mix(in srgb, var(--mantine-color-body) 85%, transparent)` so it stays translucent while following the scheme. Colours that belong to the *QR itself* (`appearance.bgColor`, the transparency checkerboard) are content and stay as they are.
+- **Never branch on the colour scheme during render.** `useComputedColorScheme` returns the stored value on the client's very first render — `getInitialValueInEffect` only defers the media query, not `localStorage` — so a JSX branch on it makes the client's first render disagree with the server and hydration fails, silently regenerating the whole tree. Render both variants and let CSS hide one (`mantine-light-hidden` / `mantine-dark-hidden`), as the header toggle does; the computed scheme is safe inside event handlers only. Verify with a stored `dark` value, not just a fresh profile: that is the only state where the mismatch shows up.
+
+Accessibility conventions worth keeping: decorative icons use `ThemeIcon` (a `div`), never `ActionIcon` with `pointerEvents: "none"`, which leaves a focusable but inert button in the tab order. Every input needs an accessible name — a visible `label` where the design has room, `aria-label` where it does not (the contact form is placeholder-only by design, so its fields carry `aria-label`).
 
 `next.config.ts` sets `optimizePackageImports` for `@mantine/core` and `@mantine/hooks`; add new large icon/component packages there rather than deep-importing.
 
