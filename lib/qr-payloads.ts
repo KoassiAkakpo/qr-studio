@@ -192,6 +192,15 @@ function toIcsUtc(input: string): string | null {
   return `${d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "")}`;
 }
 
+/**
+ * Contrôle de forme d'une adresse e-mail, volontairement permissif : le but est
+ * d'attraper les vraies fautes de saisie (adresse tronquée, espace, domaine sans
+ * point) sans rejeter des adresses valides mais inhabituelles.
+ */
+export function isLikelyEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
 function ensureUrl(u: string) {
   const t = u.trim();
   if (!t) return "";
@@ -371,15 +380,23 @@ export function templateHeadersFor(type: QrType): string[] {
     case "calendar":
       return ["title", "location", "description", "start", "end", "filename"];
     case "person":
+      // Doit couvrir tout ce que rowToFormData lit, sinon ces colonnes sont
+      // inatteignables depuis un import. L'invariant est testé.
       return [
         "firstName",
         "lastName",
+        "title",
+        "nickname",
         "organization",
         "jobTitle",
+        "department",
         "phoneWork",
         "phoneMobile",
+        "phoneOther",
         "email",
         "website",
+        "address",
+        "note",
         "filename",
       ];
     case "social":
@@ -440,7 +457,8 @@ export function rowToFormData(
         if (!s("text")) return null;
         return { type, text: s("text") };
       case "email":
-        if (!s("to")) return null;
+        // Une adresse malformée produirait un mailto: silencieusement inutilisable.
+        if (!isLikelyEmail(s("to"))) return null;
         return { type, to: s("to"), subject: s("subject"), body: s("body") };
       case "phone": {
         if (!s("number")) return null;
@@ -479,7 +497,15 @@ export function rowToFormData(
           end: toDateTimeLocal(raw("end")),
         };
       case "person":
-        if (!s("firstName") && !s("lastName") && !s("email") && !s("phoneMobile")) return null;
+        // Une adresse malformée ne suffit pas à identifier un contact ; un nom
+        // ou un mobile, si.
+        if (
+          !s("firstName") &&
+          !s("lastName") &&
+          !isLikelyEmail(s("email")) &&
+          !s("phoneMobile")
+        )
+          return null;
         return {
           type,
           firstName: s("firstName"),

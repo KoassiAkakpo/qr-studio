@@ -3,6 +3,7 @@ import {
   buildQrPayload,
   defaultDataFor,
   rowToFormData,
+  isLikelyEmail,
   templateHeadersFor,
   type QrType,
 } from "./qr-payloads";
@@ -279,6 +280,37 @@ describe("social", () => {
   });
 });
 
+describe("isLikelyEmail", () => {
+  it("accepte des adresses ordinaires", () => {
+    for (const v of ["a@b.co", "em.turner+tag@sub.acme.com", "x_y-z@example.org"]) {
+      expect(isLikelyEmail(v), v).toBe(true);
+    }
+  });
+
+  it("rejette les fautes de saisie courantes", () => {
+    for (const v of ["", "acme.com", "a@b", "a b@c.com", "a@ b.com", "@b.com", "a@"]) {
+      expect(isLikelyEmail(v), JSON.stringify(v)).toBe(false);
+    }
+  });
+});
+
+describe("templateHeadersFor", () => {
+  // L'invariant qui a manqué : le template person omettait six champs que
+  // rowToFormData lisait, donc inatteignables depuis un import.
+  it.each(ALL_TYPES)("expose toutes les colonnes lues par le type %s", (type) => {
+    const champs = Object.keys(defaultDataFor(type)).filter((k) => k !== "type");
+    const colonnes = templateHeadersFor(type).filter((h) => h !== "filename");
+    expect([...colonnes].sort()).toEqual([...champs].sort());
+  });
+
+  it("termine toujours par la colonne filename", () => {
+    for (const type of ALL_TYPES) {
+      const headers = templateHeadersFor(type);
+      expect(headers[headers.length - 1], type).toBe("filename");
+    }
+  });
+});
+
 describe("rowToFormData", () => {
   it("accepte une ligne conforme au template pour chaque type", () => {
     for (const type of ALL_TYPES) {
@@ -331,5 +363,17 @@ describe("rowToFormData", () => {
   it("rejette des coordonnées non numériques", () => {
     expect(rowToFormData("location", { latitude: "abc", longitude: "def" })).toBeNull();
     expect(rowToFormData("location", { latitude: "48.85", longitude: "2.35" })).not.toBeNull();
+  });
+
+  it("rejette une adresse e-mail malformée", () => {
+    expect(rowToFormData("email", { to: "pas-une-adresse" })).toBeNull();
+    expect(rowToFormData("email", { to: "a@b.co" })).not.toBeNull();
+  });
+
+  it("ne retient pas un e-mail invalide comme seule identité d'un contact", () => {
+    expect(rowToFormData("person", { email: "pas-une-adresse" })).toBeNull();
+    expect(rowToFormData("person", { email: "a@b.co" })).not.toBeNull();
+    // un nom suffit, même accompagné d'une adresse douteuse
+    expect(rowToFormData("person", { lastName: "Turner", email: "bof" })).not.toBeNull();
   });
 });

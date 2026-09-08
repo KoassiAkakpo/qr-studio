@@ -1,7 +1,7 @@
 "use client";
 
 import { Select, Stack, Switch, Text, TextInput, Textarea, Title } from "@mantine/core";
-import type { QrFormData, QrType } from "@/lib/qr-payloads";
+import { isLikelyEmail, type QrFormData, type QrType } from "@/lib/qr-payloads";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -53,7 +53,13 @@ export function TypeForm({
     case "email":
       return (
         <Section title="Email details">
-          <TextInput label="To" placeholder="name@example.com" value={data.to} onChange={(e) => set({ to: e.currentTarget.value })} />
+          <TextInput
+            label="To"
+            placeholder="name@example.com"
+            value={data.to}
+            onChange={(e) => set({ to: e.currentTarget.value })}
+            error={data.to.trim() && !isLikelyEmail(data.to) ? "Doesn't look like an email address" : undefined}
+          />
           <TextInput label="Subject" placeholder="Subject" value={data.subject} onChange={(e) => set({ subject: e.currentTarget.value })} />
           <Textarea label="Body" rows={4} placeholder="Message body" value={data.body} onChange={(e) => set({ body: e.currentTarget.value })} />
         </Section>
@@ -140,7 +146,12 @@ export function TypeForm({
             <TextInput placeholder="Other phone" value={data.phoneOther} onChange={(e) => set({ phoneOther: e.currentTarget.value })} />
           </Section>
           <Section title="Contact">
-            <TextInput placeholder="Email" value={data.email} onChange={(e) => set({ email: e.currentTarget.value })} />
+            <TextInput
+              placeholder="Email"
+              value={data.email}
+              onChange={(e) => set({ email: e.currentTarget.value })}
+              error={data.email.trim() && !isLikelyEmail(data.email) ? "Doesn't look like an email address" : undefined}
+            />
             <TextInput placeholder="Website" value={data.website} onChange={(e) => set({ website: e.currentTarget.value })} />
             <TextInput placeholder="Address" value={data.address} onChange={(e) => set({ address: e.currentTarget.value })} />
             <Textarea rows={2} placeholder="Notes" value={data.note} onChange={(e) => set({ note: e.currentTarget.value })} />

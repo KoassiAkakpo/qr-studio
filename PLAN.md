@@ -74,10 +74,10 @@ Testé sur un vrai `.xlsx` : sans `cellDates: true`, `lib/excel.ts` reçoit
 | #  | Problème |
 |----|----------|
 | 7  | `gradientType` (radial) et `logoSizeRatio` existent dans le type et les defaults mais **aucun contrôle UI** ; le label dit « Linear gradient » en dur |
-| 8  | Collisions de noms dans le ZIP : deux lignes homonymes → entrées dupliquées, écrasement à l'extraction |
+| 8  | ✅ Collisions de noms dans le ZIP : deux lignes homonymes → entrées dupliquées, écrasement à l'extraction |
 | 9  | ✅ `parseExcelFile` ne normalise que le trim, pas la casse → `FirstName` ≠ `firstName` → ligne invalide en silence |
-| 10 | Le template `person` omet `title`, `nickname`, `department`, `address`, `note`, `phoneOther` que `rowToFormData` lit pourtant |
-| 11 | ⚠️ lat/lng fait (lot 1) — reste l'email. Zéro validation : lat/lng non numériques donnent `geo:abc,def` ; email jamais vérifié |
+| 10 | ✅ Le template `person` omet `title`, `nickname`, `department`, `address`, `note`, `phoneOther` que `rowToFormData` lit pourtant |
+| 11 | ✅ Zéro validation : lat/lng non numériques donnent `geo:abc,def` ; email jamais vérifié |
 
 ---
 
@@ -122,8 +122,8 @@ officiel (`https://cdn.sheetjs.com/xlsx-0.20.x`) ou basculer sur `exceljs`.
 | 28 | Logo sans validation taille/type ni gestion d'erreur `FileReader` |
 | 29 | Aucun avertissement logo + ECL faible, aucun contrôle de contraste (blanc sur blanc possible) |
 | 30 | README encore le boilerplate create-next-app |
-| 31 | Batch 500 lignes séquentiel sans annulation ni barre de progression |
-| 32 | `error` réutilisé pour les warnings → alerte rouge « Note » sur un import réussi |
+| 31 | ✅ Batch 500 lignes séquentiel sans annulation ni barre de progression |
+| 32 | ✅ `error` réutilisé pour les warnings → alerte rouge « Note » sur un import réussi |
 
 ---
 
@@ -216,11 +216,34 @@ valide.
 
 Coût assumé : 2,3 Mo de binaire versionné dans le dépôt.
 
-### Lot 4 — Batch fiable  ·  #8, #9, #10, #11, #31, #32
+### ✅ Lot 4 — Batch fiable  ·  #8, #10, #11, #31, #32
 
-Déduplication des noms de fichiers, lookup de colonnes insensible à la casse,
-template aligné sur les champs réellement lus, validation lat/lng et email,
-`Progress` Mantine avec annulation, séparation warning / erreur.
+**Fait.** 24 tests supplémentaires (86 au total). #9 avait été traité au lot 1.
+
+- `dedupeFilenames` suffixe les doublons avant l'extension, en comparant sans
+  tenir compte de la casse (macOS et Windows confondent `A.png` et `a.png`) et
+  en évitant qu'un nom suffixé n'écrase un nom explicite de la liste. La
+  déduplication ne porte que sur les lignes réellement exportées.
+- Template `person` complété des six colonnes que `rowToFormData` lisait sans
+  qu'elles soient atteignables. Un test d'invariant compare, pour chaque type,
+  les colonnes du template aux champs du type — la dérive ne peut plus revenir.
+- `isLikelyEmail` rejette les adresses malformées à l'import, et une adresse
+  invalide ne suffit plus à identifier un contact. Le formulaire affiche l'erreur
+  sous le champ en saisie directe.
+- `Progress` Mantine avec compteur et bouton d'annulation ; le drapeau vit dans
+  un `ref` pour que la boucle en cours le voie immédiatement.
+- `warning` (jaune, l'opération a réussi avec réserves) séparé d'`error`
+  (rouge, l'opération a échoué).
+
+Vérifié dans Chrome via CDP, avec de vrais classeurs téléversés par
+`DOM.setFileInputFiles` :
+
+| Cas | Résultat |
+|---|---|
+| 3 lignes réclamant le même nom, dont une en casse différente | `same.png`, `same-2.png`, `same-3.png` |
+| Ligne vide + ligne dont la seule identité est `pas-une-adresse` | 3 valides / 2 invalides, signalées en jaune |
+| 505 lignes | 500 valides, avertissement de troncature, aucune erreur rouge |
+| Annulation en cours d'export | barre à « 5 / 40 rendered », puis UI réinitialisée et **aucun ZIP produit** |
 
 ### Lot 5 — Dark mode + a11y  ·  #13, #14, #15
 

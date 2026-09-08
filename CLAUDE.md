@@ -64,10 +64,13 @@ Calendar times are deliberately *floating local* (`toVEventDate`, no `Z`, no TZI
 
 [components/qr-studio/batch-mode.tsx](components/qr-studio/batch-mode.tsx) is a three-step flow: download an `.xlsx` template → import a filled sheet → export a ZIP of PNGs. It shares the same appearance object as single mode, so a batch always renders with whatever the Appearance panel currently shows.
 
-- Only the **first sheet** is read, and only the **first 500 rows** (hard cap for performance; rows beyond that are dropped with a warning).
-- `rowToFormData` returns `null` for a row missing its required fields; those rows are counted as invalid and skipped rather than failing the import. Error messages report `r.index + 2` to match the spreadsheet's 1-based row numbering with a header row.
-- An optional `filename` column overrides the derived name (`labelForRow` → `slugify`).
-- ZIP export renders rows sequentially and reports progress through a string state; it is `await`-per-row on purpose to keep the tab responsive.
+- Only the **first sheet** is read, and only the first `MAX_ROWS` (500) rows — beyond that the file is truncated and a warning says so.
+- `rowToFormData` returns `null` for a row whose required fields are missing or malformed; those rows are counted as invalid and skipped rather than failing the import. Messages report `r.index + 2` to match the spreadsheet's 1-based numbering with a header row.
+- An optional `filename` column overrides the derived name (`labelForRow` → `slugify`). Names then go through `dedupeFilenames`, **which is not optional**: JSZip accepts two entries with the same name and extraction silently overwrites one. Deduping is case-insensitive because macOS and Windows treat `A.png` and `a.png` as the same file, and it only runs across the rows that actually reach the ZIP so an invalid row cannot consume a name.
+- ZIP export renders rows sequentially (`await`-per-row on purpose, to keep the tab responsive) and is cancellable through `cancelRef`, checked at the top of each iteration. A ref rather than state, so the running loop sees the change immediately.
+- **`warning` and `error` are separate states.** `error` means the operation failed; `warning` means it succeeded with caveats (truncation, skipped rows, a cancelled export). Collapsing them is what made a successful import show a red alert.
+
+`templateHeadersFor` must expose every field `rowToFormData` reads, or those columns are unreachable from an import — the `person` template silently omitted six of them. A test in `lib/qr-payloads.test.ts` asserts the two sets match for every type, so the drift cannot come back.
 
 **`xlsx` is vendored, not installed from npm.** `package.json` points at `file:vendor/xlsx-0.20.3.tgz`, the publisher's own archive. Never "fix" this by running `npm install xlsx` — the npm registry stops at 0.18.5, which carries two unpatched high-severity advisories (prototype pollution, ReDoS) in the code path that parses user-supplied spreadsheets. [vendor/README.md](vendor/README.md) records the provenance, the sha256, and the upgrade procedure. `npm audit` must stay at zero.
 
