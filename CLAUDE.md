@@ -168,6 +168,29 @@ Two supporting rules earn their place:
   so do not drop the explicit `gap`. Note the prop is `gap` in Mantine v9 — it was
   `gutter` in earlier versions, and `gutter` now type-errors rather than being
   silently ignored.
+
+  The `Grid`s also carry `type="container"` with `breakpoints={FIELD_BREAKPOINTS}`,
+  so they answer to the **width of the form column** rather than the viewport, the
+  way `.qr-field-grid`'s `auto-fit` already does. `FIELD_BREAKPOINTS` is derived
+  from that same rule — `minmax(240px, 1fr)` with a 12px gap needs 492px for two
+  columns, 744 for three — so the two mechanisms switch at the same container
+  width by construction instead of by coincidence. Only `sm` is referenced by any
+  `span`; the other four exist because the prop is typed `Record<MantineSize, string>`.
+
+  **Be aware of two traps here.** Mantine takes the container path only when
+  *both* `type="container"` and `breakpoints` are set (`if (type === "container" &&
+  breakpoints)` in its `Grid`); passing the type alone silently falls back to media
+  queries with no warning. And the container path wraps the grid in an extra div
+  carrying `container-type: inline-size`, so a `:scope > .mantine-Grid-root`
+  selector no longer matches — which is exactly what made the sections vanish from
+  the measurement probe while the page itself looked unchanged.
+
+  Measured honestly: this produces **identical** column counts and field widths to
+  the viewport version at 390, 768, 900 and 1400px, and no width reachable in the
+  current layout makes the two disagree — the form column never drops below 492px
+  while the viewport is still above 768px. It is kept for consistency of kind, not
+  for a visible fix. Verified by moving `sm` to 1000px: a 924px column inside a
+  1400px viewport then collapses to one column, which a media query would not do.
 - `.qr-type-bar` is a single non-wrapping row that scrolls horizontally. The nine
   types used to own a 220px column that ran 362px tall and left 1276px of dead
   space under it. Because it scrolls, the active type can start off-screen on a

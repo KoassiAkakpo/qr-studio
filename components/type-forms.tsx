@@ -12,6 +12,24 @@ import {
 } from "@mantine/core";
 import { isLikelyEmail, type QrFormData } from "@/lib/qr-payloads";
 
+/**
+ * Seuils des sections en `Grid`, exprimés en largeur de **conteneur** et non de
+ * fenêtre. Ils sont dérivés de la même règle que `.qr-field-grid`, dont les
+ * colonnes font `minmax(240px, 1fr)` avec 12px d'écart : il faut 492px pour
+ * deux colonnes, 744 pour trois, 996 pour quatre. Les deux mécanismes basculent
+ * donc à la même largeur.
+ *
+ * Le type exige les cinq tailles alors que seule `sm` sert dans les `span` ;
+ * les autres sont là pour satisfaire `Record<MantineSize, string>`.
+ */
+const FIELD_BREAKPOINTS = {
+  xs: "240px",
+  sm: "492px",
+  md: "744px",
+  lg: "996px",
+  xl: "1248px",
+} as const;
+
 function Section({
   title,
   children,
@@ -88,7 +106,7 @@ export function TypeForm({
     case "email":
       return (
         <Section title="Email details">
-          <Grid gap="sm">
+          <Grid gap="sm" type="container" breakpoints={FIELD_BREAKPOINTS}>
             <Grid.Col span={{ base: 12, sm: 6 }}>
               <TextInput
                 label="To"
@@ -125,7 +143,7 @@ export function TypeForm({
     case "phone":
       return (
         <Section title="Phone / SMS">
-          <Grid gap="sm">
+          <Grid gap="sm" type="container" breakpoints={FIELD_BREAKPOINTS}>
             <Grid.Col span={{ base: 12, sm: 6 }}>
               <Select
                 label="Action"
@@ -223,7 +241,7 @@ export function TypeForm({
     case "calendar":
       return (
         <Section title="Calendar event">
-          <Grid gap="sm">
+          <Grid gap="sm" type="container" breakpoints={FIELD_BREAKPOINTS}>
             <Grid.Col span={{ base: 12, sm: 6 }}>
               <TextInput
                 label="Title"
@@ -269,7 +287,7 @@ export function TypeForm({
       return (
         <Stack gap="lg">
           <Section title="Titles">
-            <Grid gap="sm">
+            <Grid gap="sm" type="container" breakpoints={FIELD_BREAKPOINTS}>
               <Grid.Col span={{ base: 12, sm: 6 }}>
                 <TextInput
                   aria-label="First name"
