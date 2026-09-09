@@ -152,7 +152,9 @@ Two supporting rules earn their place:
   back into a full row.
 - `.qr-type-bar` is a single non-wrapping row that scrolls horizontally. The nine
   types used to own a 220px column that ran 362px tall and left 1276px of dead
-  space under it.
+  space under it. Because it scrolls, the active type can start off-screen on a
+  phone, so an effect keyed to `type` scrolls `[data-type-active]` into view —
+  with `block: "nearest"`, or it would drag the page down as well.
 
 `AppearancePanel` lays its four sections out with `SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}`
 rather than stacking them; stacked they were 1182px tall, of which 39% was visible

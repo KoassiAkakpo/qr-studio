@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
   ActionIcon,
   Badge,
@@ -102,6 +102,18 @@ export default function Home() {
   // rendraient une image plutôt que de laisser l'erreur remonter.
   const canRender = Boolean(payload) && !overCapacity;
   const canShare = useSyncExternalStore(neverChanges, readShareSupport, noShareOnServer);
+
+  const typeBarRef = useRef<HTMLDivElement>(null);
+
+  // La barre des types défile horizontalement : sur un écran étroit, le type
+  // actif se retrouve hors champ et rien n'indique lequel est sélectionné. On le
+  // ramène dans la vue. `block: "nearest"` évite de faire défiler la page en
+  // plus de la barre.
+  useEffect(() => {
+    typeBarRef.current
+      ?.querySelector("[data-type-active]")
+      ?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [type]);
 
   const switchType = (t: QrType) => {
     setType(t);
@@ -232,7 +244,7 @@ export default function Home() {
             {/* Les neuf types en une rangée : la colonne verticale qu'ils
                 occupaient laissait 1276px de vide sous elle. */}
             <Card withBorder radius="md" p={6}>
-              <div className="qr-type-bar">
+              <div className="qr-type-bar" ref={typeBarRef}>
                 {TYPE_ORDER.map((t) => (
                   <Button
                     key={t}
@@ -241,6 +253,7 @@ export default function Home() {
                     leftSection={TYPE_ICONS[t]}
                     onClick={() => switchType(t)}
                     size="sm"
+                    data-type-active={type === t || undefined}
                   >
                     {QR_TYPE_META[t].label}
                   </Button>
