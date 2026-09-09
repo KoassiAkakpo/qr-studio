@@ -238,7 +238,12 @@ export default function Home() {
 
       <Container size={1400} py="lg">
         {mode === "batch" ? (
-          <BatchMode type={type} onTypeChange={switchType} appearance={appearance} />
+          <BatchMode
+            type={type}
+            onTypeChange={switchType}
+            appearance={appearance}
+            onAppearanceChange={setAppearance}
+          />
         ) : (
           <Stack gap="lg">
             {/* Les neuf types en une rangée : la colonne verticale qu'ils

@@ -65,7 +65,7 @@ Calendar times are deliberately *floating local* (`toVEventDate`, no `Z`, no TZI
 
 ### Batch mode
 
-[components/qr-studio/batch-mode.tsx](components/qr-studio/batch-mode.tsx) is a three-step flow: download an `.xlsx` template → import a filled sheet → export a ZIP of PNGs. It shares the same appearance object as single mode, so a batch always renders with whatever the Appearance panel currently shows — and the panel itself is only rendered on the Single tab, which is why step 3's help text says so out loud.
+[components/qr-studio/batch-mode.tsx](components/qr-studio/batch-mode.tsx) is a three-step flow: download an `.xlsx` template → import a filled sheet → export a ZIP of PNGs. It shares the same appearance object as single mode — `AppearancePanel` is rendered in both tabs against the same `appearance` state, so a change made in one is immediately in effect in the other.
 
 - Only the **first sheet** is read, and only the first `MAX_ROWS` (500) rows — beyond that the file is truncated and a warning says so.
 - `rowToFormData` returns `null` for a row whose required fields are missing or malformed; those rows are counted as invalid and skipped rather than failing the import. Messages report `r.index + 2` to match the spreadsheet's 1-based numbering with a header row.
@@ -160,9 +160,18 @@ Two supporting rules earn their place:
 rather than stacking them; stacked they were 1182px tall, of which 39% was visible
 at load.
 
-The Multiple Codes tab is a `SimpleGrid` of three equal-height step cards over a
-full-width results card. The steps are one-time configuration and the thumbnails are
-what you look at, so the thumbnails get the whole container — six columns at 1400px.
+The Multiple Codes tab is a `SimpleGrid` of three equal-height step cards, then a
+collapsed `Accordion` holding `AppearancePanel`, then a full-width results card. The
+steps are one-time configuration and the thumbnails are what you look at, so the
+thumbnails get the whole container — six columns at 1400px.
+
+The Appearance accordion starts collapsed and its control carries
+`describeAppearance(appearance)`, so the settings a whole batch is about to use stay
+readable without opening it. Opening it pushes the first thumbnail to y=1129, off a
+1000px screen, so `.qr-batch-appearance` puts a live sample of the first imported row
+in a `.qr-sticky-aside` beside the controls. **Do not drop that sample** — without it
+the panel is the same blind-styling trap the Single tab used to have, and the
+thumbnails are too far down to serve as feedback.
 
 ## Styling: Mantine v9, exclusively
 
@@ -194,6 +203,7 @@ Accessibility conventions worth keeping: decorative icons use `ThemeIcon` (a `di
 
 ## Conventions worth matching
 
+- Shape labels live once, in `DOTS_TYPE_LABELS` / `CORNER_TYPE_LABELS` in [lib/qr-appearance.ts](lib/qr-appearance.ts). `AppearancePanel` derives its `Select` data from them and `describeAppearance` reuses them, so a new shape needs one entry, not three. Both are `Record<…Type, string>`, so TypeScript demands the entry.
 - Path alias `@/*` maps to the repo root: `@/lib/...`, `@/components/...`.
 - Every component under `components/qr-studio/` is `"use client"`, as is `app/page.tsx`.
 - `lib/utils.ts` holds exactly two helpers: `downloadBlob` (anchor-click + delayed `revokeObjectURL`) and `slugify`. Reuse them for any new download path instead of re-rolling the anchor dance.

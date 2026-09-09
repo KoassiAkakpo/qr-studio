@@ -2,7 +2,10 @@ import { describe, it, expect } from "vitest";
 import qrcode from "qrcode-generator";
 import {
   appearanceToStylingOptions,
+  CORNER_TYPE_LABELS,
   DEFAULT_APPEARANCE,
+  DOTS_TYPE_LABELS,
+  describeAppearance,
   QR_BYTE_CAPACITY,
   captionColorFor,
   captionFontSize,
@@ -232,5 +235,75 @@ describe("appearanceToStylingOptions", () => {
     );
     expect(opts.qrOptions.errorCorrectionLevel).toBe("H");
     expect(opts.backgroundOptions.color).toBe("transparent");
+  });
+});
+
+describe("DOTS_TYPE_LABELS / CORNER_TYPE_LABELS", () => {
+  // Les menus du panneau sont construits depuis ces tables : une entrée vide
+  // afficherait une option sans texte plutôt qu'une erreur de compilation.
+  it("donnent un libellé non vide à chaque forme", () => {
+    for (const [k, v] of Object.entries({ ...DOTS_TYPE_LABELS })) {
+      expect(v.trim(), k).not.toBe("");
+    }
+    for (const [k, v] of Object.entries({ ...CORNER_TYPE_LABELS })) {
+      expect(v.trim(), k).not.toBe("");
+    }
+  });
+
+  it("couvrent exactement les formes acceptées par le rendu", () => {
+    expect(Object.keys(DOTS_TYPE_LABELS)).toHaveLength(6);
+    expect(Object.keys(CORNER_TYPE_LABELS)).toHaveLength(3);
+  });
+});
+
+describe("describeAppearance", () => {
+  it("nomme la forme, la couleur, la correction et la résolution", () => {
+    const d = describeAppearance({
+      ...DEFAULT_APPEARANCE,
+      dotsColorMode: "solid",
+      dotsColor: "#112233",
+      dotsType: "square",
+      showFrameText: false,
+      ecl: "Q",
+      size: 1024,
+    });
+    expect(d).toBe("Square · #112233 · ECL Q · 1024px");
+  });
+
+  it("montre les deux bornes d'un dégradé", () => {
+    const d = describeAppearance({
+      ...DEFAULT_APPEARANCE,
+      dotsColorMode: "gradient",
+      dotsColor: "#aaaaaa",
+      gradientColor2: "#bbbbbb",
+    });
+    expect(d).toContain("#aaaaaa → #bbbbbb");
+  });
+
+  it("signale fond transparent, logo et légende", () => {
+    const d = describeAppearance({
+      ...DEFAULT_APPEARANCE,
+      bgColorMode: "transparent",
+      logoDataUrl: "data:image/png;base64,x",
+      showFrameText: true,
+      frameText: "Scan me",
+    });
+    expect(d).toContain("transparent bg");
+    expect(d).toContain("logo");
+    expect(d).toContain("caption");
+  });
+
+  it("ne signale pas une légende activée mais vide", () => {
+    // La case peut être cochée sur un texte effacé : rien n'est dessiné.
+    const d = describeAppearance({
+      ...DEFAULT_APPEARANCE,
+      showFrameText: true,
+      frameText: "   ",
+    });
+    expect(d).not.toContain("caption");
+  });
+
+  it("tient sur une ligne courte", () => {
+    expect(describeAppearance(DEFAULT_APPEARANCE).length).toBeLessThan(80);
   });
 });

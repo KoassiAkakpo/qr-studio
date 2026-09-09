@@ -53,7 +53,9 @@ import zone, and export a ZIP of PNGs. Up to 500 rows per file, 10 MB per file.
   failing the whole import.
 - An optional `filename` column names each PNG; duplicates get a numbered suffix
   so nothing is overwritten in the archive.
-- Every code in a batch uses the current Appearance settings.
+- Every code in a batch uses the current Appearance settings, which are editable
+  from either tab — the batch tab shows them under a collapsible panel with a live
+  sample of the first row.
 
 ## Appearance
 
@@ -62,7 +64,9 @@ transparent or solid background, margin, a centre logo with adjustable size
 (drag an image in, or click to browse — up to 2 MB), a caption drawn beneath the
 code, error correction level, and export resolution.
 
-The panel warns when a combination is likely to scan badly — pixels too close in
+The same panel is available in both tabs and edits one shared set of settings.
+
+It warns when a combination is likely to scan badly — pixels too close in
 colour to the background, or a logo with error correction too low to recover the
 modules it covers.
 

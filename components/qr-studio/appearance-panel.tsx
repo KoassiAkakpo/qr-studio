@@ -18,7 +18,14 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import { IconPhoto } from "@tabler/icons-react";
-import { scanabilityWarnings, type QrAppearance } from "@/lib/qr-appearance";
+import {
+  CORNER_TYPE_LABELS,
+  DOTS_TYPE_LABELS,
+  scanabilityWarnings,
+  type CornerType,
+  type DotsType,
+  type QrAppearance,
+} from "@/lib/qr-appearance";
 import { FileDropzone, type AcceptMap } from "./file-dropzone";
 
 // Le logo est encodé en data URL et embarqué dans chaque rendu : un fichier
@@ -34,6 +41,17 @@ const LOGO_ACCEPT: AcceptMap = {
   "image/webp": [".webp"],
   "image/gif": [".gif"],
 };
+
+// Construits depuis les tables partagées : ajouter une forme au type suffit
+// pour qu'elle apparaisse dans le menu.
+const DOTS_OPTIONS = (Object.keys(DOTS_TYPE_LABELS) as DotsType[]).map((value) => ({
+  value,
+  label: DOTS_TYPE_LABELS[value],
+}));
+const CORNER_OPTIONS = (Object.keys(CORNER_TYPE_LABELS) as CornerType[]).map((value) => ({
+  value,
+  label: CORNER_TYPE_LABELS[value],
+}));
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -80,36 +98,21 @@ export function AppearancePanel({
           <Select
             label="Pixel style"
             value={value.dotsType}
-            onChange={(v) => v && set({ dotsType: v as QrAppearance["dotsType"] })}
-            data={[
-              { value: "square", label: "Square" },
-              { value: "rounded", label: "Rounded" },
-              { value: "dots", label: "Dots" },
-              { value: "classy", label: "Classy" },
-              { value: "classy-rounded", label: "Classy rounded" },
-              { value: "extra-rounded", label: "Extra rounded" },
-            ]}
+            onChange={(v) => v && set({ dotsType: v as DotsType })}
+            data={DOTS_OPTIONS}
           />
           <Group grow gap="xs">
             <Select
               label="Corners"
               value={value.cornersSquareType}
-              onChange={(v) => v && set({ cornersSquareType: v as QrAppearance["cornersSquareType"] })}
-              data={[
-                { value: "square", label: "Square" },
-                { value: "dot", label: "Dot" },
-                { value: "extra-rounded", label: "Rounded" },
-              ]}
+              onChange={(v) => v && set({ cornersSquareType: v as CornerType })}
+              data={CORNER_OPTIONS}
             />
             <Select
               label="Corner dots"
               value={value.cornersDotType}
-              onChange={(v) => v && set({ cornersDotType: v as QrAppearance["cornersDotType"] })}
-              data={[
-                { value: "square", label: "Square" },
-                { value: "dot", label: "Dot" },
-                { value: "extra-rounded", label: "Rounded" },
-              ]}
+              onChange={(v) => v && set({ cornersDotType: v as CornerType })}
+              data={CORNER_OPTIONS}
             />
           </Group>
           <Text size="sm" mt="xs">Margin: {value.margin}px</Text>

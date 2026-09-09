@@ -60,6 +60,17 @@ body {
   top: 76px;
 }
 
+/* Réglages du mode lot : les contrôles et un exemplaire vivant côte à côte.
+   Sans cet exemplaire, déplier le panneau repousse la première vignette à
+   y=1129 — hors d'un écran de 1000px — et on règle à l'aveugle, le défaut même
+   que .qr-single-grid corrige côté Single. */
+.qr-batch-appearance {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) 300px;
+}
+
 /* Barre des types : une seule rangée qui défile latéralement plutôt que de
    passer à la ligne, pour que la hauteur de l'en-tête ne bouge pas d'un type
    à l'autre. */
@@ -77,7 +88,8 @@ body {
 }
 
 @media (max-width: 75em) {
-  .qr-single-grid {
+  .qr-single-grid,
+  .qr-batch-appearance {
     grid-template-columns: 1fr;
   }
 

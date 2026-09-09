@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import JSZip from "jszip";
 import {
+  Accordion,
   Alert,
   Badge,
   Button,
@@ -27,8 +28,9 @@ import {
   type QrFormData,
   type QrType,
 } from "@/lib/qr-payloads";
-import type { QrAppearance } from "@/lib/qr-appearance";
+import { describeAppearance, type QrAppearance } from "@/lib/qr-appearance";
 import { dedupeFilenames, downloadBlob, slugify } from "@/lib/utils";
+import { AppearancePanel } from "./appearance-panel";
 import { FileDropzone, type AcceptMap } from "./file-dropzone";
 import { QrPreview, renderQrPngBlob } from "./qr-preview";
 
@@ -60,10 +62,12 @@ export function BatchMode({
   type,
   onTypeChange,
   appearance,
+  onAppearanceChange,
 }: {
   type: QrType;
   onTypeChange: (t: QrType) => void;
   appearance: QrAppearance;
+  onAppearanceChange: (a: QrAppearance) => void;
 }) {
   const [rows, setRows] = useState<BatchRow[]>([]);
   const [busy, setBusy] = useState(false);
@@ -86,6 +90,9 @@ export function BatchMode({
   );
   const validRows = useMemo(() => rows.filter((r) => r.data && r.payload), [rows]);
   const invalidRows = useMemo(() => rows.filter((r) => !r.data), [rows]);
+  // La première ligne importée sert d'exemplaire aux réglages ; avant tout
+  // import, un payload court suffit à montrer formes et couleurs.
+  const samplePayload = validRows[0]?.payload ?? "https://example.com";
 
   const reset = () => {
     setRows([]);
@@ -263,13 +270,43 @@ export function BatchMode({
               </Button>
             )}
             <Text size="xs" c="dimmed" mt="auto">
-              Every QR uses the Appearance settings from the Single tab. Filenames come from the
-              “filename” column when present, and duplicates get a numbered suffix so nothing is
-              overwritten.
+              Filenames come from the “filename” column when present, and duplicates get a
+              numbered suffix so nothing is overwritten.
             </Text>
           </Stack>
         </Card>
       </SimpleGrid>
+
+      {/* Le même objet d'apparence que le mode simple, éditable ici aussi : sans
+          cela, styler un lot obligeait à repasser par l'onglet Single. Replié par
+          défaut, parce que les vignettes sont ce qu'on vient regarder — et le
+          résumé garde les réglages sous les yeux même fermé. */}
+      <Accordion variant="separated" radius="md" chevronPosition="left">
+        <Accordion.Item value="appearance">
+          <Accordion.Control>
+            <Group gap="sm" wrap="wrap">
+              <Text fw={600} size="sm">✣ Appearance</Text>
+              <Text size="xs" c="dimmed">{describeAppearance(appearance)}</Text>
+            </Group>
+          </Accordion.Control>
+          <Accordion.Panel>
+            <div className="qr-batch-appearance">
+              <AppearancePanel value={appearance} onChange={onAppearanceChange} />
+              {/* Réutilise la colonne collante du mode simple : les vignettes
+                  sont trop bas pour servir de retour visuel une fois le panneau
+                  ouvert. */}
+              <div className="qr-sticky-aside">
+                <Stack gap="xs">
+                  <Text size="xs" fw={700} tt="uppercase" c="blue">
+                    {validRows.length > 0 ? "First row" : "Sample"}
+                  </Text>
+                  <QrPreview payload={samplePayload} appearance={appearance} />
+                </Stack>
+              </div>
+            </div>
+          </Accordion.Panel>
+        </Accordion.Item>
+      </Accordion>
 
       <Card withBorder radius="md" p="md" mih={320}>
         <Stack gap="md">

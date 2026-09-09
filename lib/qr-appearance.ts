@@ -28,6 +28,27 @@ export interface QrAppearance {
   showFrameText: boolean;
 }
 
+/**
+ * Libellés des formes, ici et non dans le composant : le résumé d'apparence du
+ * mode lot les réutilise, et deux tables séparées finiraient par diverger.
+ * `Record<DotsType, string>` force TypeScript à réclamer une entrée pour toute
+ * forme ajoutée.
+ */
+export const DOTS_TYPE_LABELS: Record<DotsType, string> = {
+  square: "Square",
+  rounded: "Rounded",
+  dots: "Dots",
+  classy: "Classy",
+  "classy-rounded": "Classy rounded",
+  "extra-rounded": "Extra rounded",
+};
+
+export const CORNER_TYPE_LABELS: Record<CornerType, string> = {
+  square: "Square",
+  dot: "Dot",
+  "extra-rounded": "Rounded",
+};
+
 export const DEFAULT_APPEARANCE: QrAppearance = {
   dotsType: "extra-rounded",
   cornersSquareType: "extra-rounded",
@@ -245,4 +266,22 @@ export function appearanceToStylingOptions(
     },
     image: appearance.logoDataUrl || undefined,
   };
+}
+
+/**
+ * Résumé d'une apparence sur une ligne, pour un en-tête replié.
+ *
+ * Ne retient que ce qui change visiblement le code : sans cela, replier le
+ * panneau ferait perdre de vue les réglages qu'un lot entier va utiliser.
+ */
+export function describeAppearance(a: QrAppearance): string {
+  const parts = [DOTS_TYPE_LABELS[a.dotsType]];
+  parts.push(
+    a.dotsColorMode === "gradient" ? `${a.dotsColor} → ${a.gradientColor2}` : a.dotsColor
+  );
+  if (a.bgColorMode === "transparent") parts.push("transparent bg");
+  if (a.logoDataUrl) parts.push("logo");
+  if (a.showFrameText && a.frameText.trim()) parts.push("caption");
+  parts.push(`ECL ${a.ecl}`, `${a.size}px`);
+  return parts.join(" · ");
 }
