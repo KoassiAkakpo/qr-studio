@@ -58,6 +58,7 @@ import { TypeForm } from "@/components/type-forms";
 import { QrPreview, renderQrPngBlob } from "@/components/qr-preview";
 import { AppearancePanel } from "@/components/appearance-panel";
 import { BatchMode } from "@/components/batch-mode";
+import { UpdateButton } from "@/components/update-button";
 
 /**
  * `navigator` n'existe pas au rendu serveur. useSyncExternalStore expose un
@@ -211,6 +212,10 @@ export default function Home() {
               <Title order={4}>QR Studio</Title>
             </Group>
             <Group gap="xs" wrap="wrap">
+              {/* Ne rend rien tant qu'aucun nouveau build n'attend. Placé en
+                  tête du groupe : quand il apparaît, il pousse les icônes au
+                  lieu de les déplacer sous lui. */}
+              <UpdateButton />
               {/* ActionIcon polymorphe en <a> : un bouton enveloppé dans un lien
                   serait un contrôle interactif imbriqué dans un autre. `rel`
                   empêche la page ouverte d'atteindre `window.opener`. */}

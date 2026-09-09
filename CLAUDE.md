@@ -7,8 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev        # next dev
-npm run build      # next build — also runs the TS check (tsconfig is noEmit)
+npm run dev        # next dev — no service worker in dev, by design
+npm run build      # tsc -p sw && next build && serwist build && check-precache
+npm start          # next start — the only way to exercise the service worker
 npm run lint       # bare `eslint` (flat config); no `next lint`
 npm test           # vitest run
 npm run test:watch # vitest, watch mode
@@ -129,6 +130,122 @@ Three traps in the compositing code:
 - A canvas 2D context is not available in every environment; the function degrades to the plain QR blob rather than throwing.
 
 Capacity is enforced *before* generation, never by catching: `exceedsCapacity` (a static version-40 byte table per ECL, validated against the real generator in `lib/qr-appearance.test.ts`) is computed during render, gates the image-producing buttons, and shows the byte budget in the badge. The `try`/`catch` around `.update()` is only a net for unexpected library throws — without it, an overflow escapes the effect and takes down the tree, since there is no error boundary. The failure is keyed to a `payload|ecl` signature so it expires during render rather than being cleared by a second `setState`.
+
+## Offline (PWA)
+
+The app is installable and works **fully** offline, not in a degraded mode: there
+are no API routes, no server actions, no runtime `fetch`, and `next/font`
+self-hosts Geist at build time, so once the shell is precached nothing the page
+does needs the network.
+
+Three pieces: [app/manifest.ts](app/manifest.ts) (Next metadata convention — do
+not also drop a `manifest.json` in `public/`, they would compete), the icons, and
+a Serwist service worker.
+
+### Serwist runs in configurator mode, not webpack mode
+
+`withSerwistInit` — the `next.config` wrapper in every Serwist tutorial — **does
+not support Turbopack**, which is Next 16's default compiler; using it would mean
+forcing `next build --webpack` and `next dev --webpack` on the whole app.
+[serwist.config.mjs](serwist.config.mjs) uses the configurator instead: it runs
+*after* the build, reads `.next/` and `public/` to derive the precache manifest,
+and bundles [sw/index.ts](sw/index.ts) with esbuild.
+
+That makes the `build` script an ordered chain, and every link earns its place:
+
+```bash
+tsc -p sw --noEmit && next build && serwist build serwist.config.mjs && node scripts/check-precache.mjs
+```
+
+- `tsc -p sw` because esbuild strips types without checking them — without this a
+  type error in the worker ships silently. `sw/` needs [its own tsconfig](sw/tsconfig.json)
+  (`lib: ["webworker"]`) since `webworker` and `dom` declare the same globals with
+  different types and cannot coexist, so the root tsconfig `exclude`s `sw`.
+- `serwist build` **after** `next build`, or the manifest is empty or stale.
+- The config path is explicit because the CLI defaults to `serwist.config.js`, and
+  the file must be `.mjs` — `package.json` has no `"type": "module"`.
+
+`public/sw.js` and its map are generated, so they are gitignored, and `public/sw.js`
+is in eslint's `globalIgnores` (a minified bundle otherwise drowns the report in
+70 warnings).
+
+### Two precache traps, and the guard that pins them
+
+Both failures here are invisible, which is why
+[scripts/check-precache.mjs](scripts/check-precache.mjs) fails the build instead
+of leaving them to be noticed:
+
+- **Serwist's default glob patterns list js/css/images but not fonts.** The Geist
+  files land in `.next/static/media/*.woff2` and went unprecached — offline the
+  page rendered in Helvetica and said nothing. `globPatterns` therefore extends
+  `generateGlobPatterns()` rather than replacing it.
+- **Metadata icons are emitted under one name and served under another.**
+  `app/icon.svg` is written to `static/media/icon.<hash>.svg` but referenced as
+  `/icon.svg?icon.<hash>.svg`, so precaching the build URL answered no request at
+  all and the tab lost its icon offline. A `manifestTransforms` entry rewrites
+  them. `/manifest.webmanifest` is an app route in no glob at all, so it is
+  precached through `templatedURLs`, keyed to the rendered body so the revision
+  invalidates when `app/manifest.ts` changes.
+
+The check asserts the root document, every `.next/static` js/css/font, **and every
+same-origin URL the prerendered HTML references** — that last one is the general
+case, since it tests what the page actually requests rather than what the build
+wrote to disk. It is the check that catches an asset served under a URL that is
+not its filename.
+
+### Updates are user-driven, never automatic
+
+The worker is built with **`skipWaiting: false`** and
+[components/update-button.tsx](components/update-button.tsx) drives the swap. An
+automatic `skipWaiting` replaces the worker under a live page, so chunks already
+loaded and chunks served next come from two different builds. Instead the new
+worker waits, the button appears in the header, and the click sends
+`messageSkipWaiting()`; the reload happens on `controlling`, not on the message
+reply, or it would still be served by the old cache. `clientsClaim: true` is what
+lets the new worker take over in time for that reload.
+
+This matters more than it looks: an installed PWA serves from cache and never
+re-requests the HTML, so without a visible signal a user can sit on a stale build
+for weeks. `/sw.js` is served `no-store` from [next.config.ts](next.config.ts) for
+the same reason — re-downloading the worker is *how* the browser learns a new
+build exists.
+
+`UpdateButton` renders `null` until an effect flips its state, so the server and
+the client's first render agree — the same hydration rule as the colour-scheme
+toggle.
+
+**`SerwistProvider` gets `reloadOnOnline={false}`, and the default of `true` is a
+trap here.** All app state is in memory — a half-filled contact form, an imported
+spreadsheet, a tuned appearance — so reloading the moment the network returns
+throws it away. Nothing in the app needs the network anyway. `cacheOnNavigation`
+is off for the same reason the navigation fallback is trivial: there is one route.
+
+The worker declares **no `runtimeCaching`**. The precache already covers
+everything the app requests, and a runtime strategy would only add expiring caches
+that evict files still needed offline. The provider is disabled outside
+production, since dev has no `/sw.js` and a worker precaching dev chunks would
+serve stale code on every reload.
+
+### Icons
+
+`app/icon.svg` stays the single source. `app/favicon.ico`,
+`public/icon-{192,512}.png`, `public/icon-maskable-512.png` and `app/apple-icon.png`
+are all **derived** from it; regenerate with
+[scripts/generate-pwa-icons.sh](scripts/generate-pwa-icons.sh) after any edit, on
+the same one-big-render-then-`-filter box` discipline the `.ico` already needed.
+The maskable variant is a separate file on purpose: a platform crops a maskable
+icon by up to 20%, which would eat the finder patterns, so it drops the `rx`,
+bleeds the background to the edge, and scales the pattern by `0.625` — a ratio
+picked so modules stay on whole pixels and the pattern's diagonal stays inside the
+safe circle.
+
+### Dependencies
+
+`@serwist/next` pulls a `browserslist` below 4.28.9, which carries two
+high-severity advisories, and `npm audit fix --force` "fixes" it by *downgrading*
+`@serwist/next` to 9.4.1. The `overrides` entry in `package.json` pins
+`browserslist` to `^4.28.9` — same major, no breaking change. `npm audit` stays at
+zero; keep it there.
 
 ## Layout
 
