@@ -183,11 +183,14 @@ export function BatchMode({
   };
 
   return (
-    <div className="qr-batch-grid">
-      <Stack gap="md">
-        <Card withBorder radius="md" p="md">
+    <Stack gap="lg">
+      {/* Les trois étapes sont de la configuration ponctuelle : en rangée, elles
+          libèrent toute la largeur pour les vignettes, qui sont ce qu'on regarde.
+          Empilées, leur colonne faisait 722px face à un panneau de 400px. */}
+      <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
+        <Card withBorder radius="md" p="md" h="100%">
           <Stack gap="sm">
-            <Title order={6}>1 · Choose type & template</Title>
+            <Title order={6}>1 · Choose type &amp; template</Title>
             <Select
               label="QR type"
               value={type}
@@ -198,13 +201,13 @@ export function BatchMode({
               <Text size="xs" fw={600}>Expected columns:</Text>
               <Text size="xs" ff="monospace" mt={4}>{expected.join(", ")}</Text>
             </div>
-            <Button variant="outline" fullWidth onClick={() => downloadTemplate(type)}>
+            <Button variant="outline" fullWidth mt="auto" onClick={() => downloadTemplate(type)}>
               Download template
             </Button>
           </Stack>
         </Card>
 
-        <Card withBorder radius="md" p="md">
+        <Card withBorder radius="md" p="md" h="100%">
           <Stack gap="sm">
             <Title order={6}>2 · Import Excel / CSV</Title>
             <FileDropzone
@@ -236,7 +239,7 @@ export function BatchMode({
           </Stack>
         </Card>
 
-        <Card withBorder radius="md" p="md">
+        <Card withBorder radius="md" p="md" h="100%">
           <Stack gap="sm">
             <Title order={6}>3 · Export</Title>
             <Group>
@@ -259,23 +262,24 @@ export function BatchMode({
                 Cancel
               </Button>
             )}
-            <Text size="xs" c="dimmed">
-              Every QR uses the Appearance settings. Filenames come from the “filename” column when
-              present, and duplicates get a numbered suffix so nothing is overwritten.
+            <Text size="xs" c="dimmed" mt="auto">
+              Every QR uses the Appearance settings from the Single tab. Filenames come from the
+              “filename” column when present, and duplicates get a numbered suffix so nothing is
+              overwritten.
             </Text>
           </Stack>
         </Card>
-      </Stack>
+      </SimpleGrid>
 
-      <Card withBorder radius="md" p="md" style={{ minHeight: 400 }}>
+      <Card withBorder radius="md" p="md" mih={320}>
         <Stack gap="md">
           <Title order={6}>Preview — first {Math.min(12, validRows.length)} of {validRows.length}</Title>
           {validRows.length === 0 ? (
-            <Text size="sm" c="dimmed" ta="center" py={60}>
-              No rows yet. Download the template, fill it, then import it.
+            <Text size="sm" c="dimmed" ta="center" py={80}>
+              No rows yet. Download the template, fill it, then drop it on step 2.
             </Text>
           ) : (
-            <SimpleGrid cols={{ base: 1, sm: 2, lg: 3, xl: 4 }} spacing="md">
+            <SimpleGrid cols={{ base: 1, xs: 2, sm: 3, md: 4, lg: 5, xl: 6 }} spacing="md">
               {validRows.slice(0, 12).map((r) => (
                 <Card key={r.index} withBorder radius="md" p="sm">
                   <Stack gap="xs">
@@ -302,6 +306,6 @@ export function BatchMode({
           )}
         </Stack>
       </Card>
-    </div>
+    </Stack>
   );
 }

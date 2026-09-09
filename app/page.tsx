@@ -219,19 +219,6 @@ export default function Home() {
                   { value: "batch", label: "Multiple Codes" },
                 ]}
               />
-              {mode === "single" && (
-                <>
-                  <Button variant="outline" size="xs" onClick={handleCopyRaw} leftSection={copied ? <IconCheck size={14} /> : <IconCopy size={14} />}>
-                    Copy raw
-                  </Button>
-                  <Button variant="outline" size="xs" onClick={handleCopyImage} disabled={!canRender} leftSection={copied ? <IconCheck size={14} /> : <IconCopy size={14} />}>
-                    Copy PNG
-                  </Button>
-                  <Button size="xs" onClick={handleDownload} disabled={busy || !canRender} loading={busy} leftSection={<IconDownload size={14} />}>
-                    Export PNG
-                  </Button>
-                </>
-              )}
             </Group>
           </Group>
         </Container>
@@ -241,94 +228,127 @@ export default function Home() {
         {mode === "batch" ? (
           <BatchMode type={type} onTypeChange={switchType} appearance={appearance} />
         ) : (
-          <div className="qr-single-grid">
-            {/* Sidebar */}
-            <Card withBorder radius="md" p="xs" style={{ position: "sticky", top: 76 }}>
-              <Stack gap={2}>
+          <Stack gap="lg">
+            {/* Les neuf types en une rangée : la colonne verticale qu'ils
+                occupaient laissait 1276px de vide sous elle. */}
+            <Card withBorder radius="md" p={6}>
+              <div className="qr-type-bar">
                 {TYPE_ORDER.map((t) => (
                   <Button
                     key={t}
                     variant={type === t ? "light" : "subtle"}
                     color={type === t ? "blue" : "gray"}
-                    justify="flex-start"
                     leftSection={TYPE_ICONS[t]}
                     onClick={() => switchType(t)}
-                    fullWidth
+                    size="sm"
                   >
                     {QR_TYPE_META[t].label}
                   </Button>
                 ))}
-              </Stack>
+              </div>
             </Card>
 
-            {/* Form */}
-            <Card withBorder radius="md" p="md">
-              <Stack gap="md">
-                <Group justify="space-between" align="flex-start">
-                  <div>
-                    <Title order={4} tt="capitalize">{QR_TYPE_META[type].label}</Title>
-                    <Text size="xs" c="dimmed" mt={4}>{QR_TYPE_META[type].hint}</Text>
-                  </div>
-                  <Badge color={canRender ? "blue" : "red"}>
-                    {payload ? `${bytes} / ${capacity} bytes` : "empty"}
-                  </Badge>
-                </Group>
-                <TypeForm data={formData} onChange={setFormData} />
-              </Stack>
-            </Card>
-
-            {/* Preview */}
-            <Stack gap="md" style={{ minWidth: 0 }}>
-              <Group justify="space-between">
-                <SegmentedControl
-                  value={previewTab}
-                  onChange={(v) => setPreviewTab(v as PreviewTab)}
-                  data={[
-                    { value: "qr", label: "QR Code" },
-                    { value: "raw", label: "Raw Code" },
-                  ]}
-                />
-                <Group gap="xs">
-                  {canShare && (
-                    <ActionIcon
-                      variant="default"
-                      radius="xl"
-                      onClick={handleShare}
-                      disabled={!payload}
-                      aria-label="Share QR code"
-                    >
-                      <IconShare size={16} />
-                    </ActionIcon>
-                  )}
-                  {canRender && (
-                    <ThemeIcon color="green" variant="light" radius="xl" aria-label="Payload is ready">
-                      <IconCheck size={16} />
-                    </ThemeIcon>
-                  )}
-                </Group>
-              </Group>
-
-              {previewTab === "raw" ? (
+            <div className="qr-single-grid">
+              {/* Formulaire et réglages dans la même colonne : voir le
+                  commentaire de .qr-single-grid dans globals.css. */}
+              <Stack gap="lg" style={{ minWidth: 0 }}>
                 <Card withBorder radius="md" p="md">
-                  <Stack gap="sm">
-                    <Textarea readOnly rows={12} value={payload} ff="monospace" styles={{ input: { fontSize: 12 } }} />
-                    <Button variant="outline" size="xs" fullWidth onClick={handleCopyRaw} leftSection={<IconCopy size={14} />}>
-                      Copy raw payload
-                    </Button>
+                  <Stack gap="md">
+                    <Group justify="space-between" align="flex-start">
+                      <div>
+                        <Title order={4} tt="capitalize">{QR_TYPE_META[type].label}</Title>
+                        <Text size="xs" c="dimmed" mt={4}>{QR_TYPE_META[type].hint}</Text>
+                      </div>
+                      <Badge color={canRender ? "blue" : "red"}>
+                        {payload ? `${bytes} / ${capacity} bytes` : "empty"}
+                      </Badge>
+                    </Group>
+                    <TypeForm data={formData} onChange={setFormData} />
                   </Stack>
                 </Card>
-              ) : (
-                <QrPreview payload={payload} appearance={appearance} />
-              )}
 
-              <Card withBorder radius="md" p="md">
-                <Stack gap="md">
-                  <Title order={5}>✣ Appearance</Title>
-                  <AppearancePanel value={appearance} onChange={setAppearance} />
+                <Card withBorder radius="md" p="md">
+                  <Stack gap="md">
+                    <Title order={5}>✣ Appearance</Title>
+                    <AppearancePanel value={appearance} onChange={setAppearance} />
+                  </Stack>
+                </Card>
+              </Stack>
+
+              <div className="qr-sticky-aside">
+                <Stack gap="md" style={{ minWidth: 0 }}>
+                  <Group justify="space-between">
+                    <SegmentedControl
+                      value={previewTab}
+                      onChange={(v) => setPreviewTab(v as PreviewTab)}
+                      data={[
+                        { value: "qr", label: "QR Code" },
+                        { value: "raw", label: "Raw Code" },
+                      ]}
+                    />
+                    <Group gap="xs">
+                      {canShare && (
+                        <ActionIcon
+                          variant="default"
+                          radius="xl"
+                          onClick={handleShare}
+                          disabled={!payload}
+                          aria-label="Share QR code"
+                        >
+                          <IconShare size={16} />
+                        </ActionIcon>
+                      )}
+                      {canRender && (
+                        <ThemeIcon color="green" variant="light" radius="xl" aria-label="Payload is ready">
+                          <IconCheck size={16} />
+                        </ThemeIcon>
+                      )}
+                    </Group>
+                  </Group>
+
+                  {previewTab === "raw" ? (
+                    <Card withBorder radius="md" p="md">
+                      <Textarea readOnly rows={14} value={payload} ff="monospace" styles={{ input: { fontSize: 12 } }} />
+                    </Card>
+                  ) : (
+                    <QrPreview payload={payload} appearance={appearance} />
+                  )}
+
+                  {/* Les actions accompagnent l'aperçu plutôt que l'en-tête :
+                      elles restent à portée pendant tout le défilement. */}
+                  <Stack gap="xs">
+                    <Button
+                      onClick={handleDownload}
+                      disabled={busy || !canRender}
+                      loading={busy}
+                      leftSection={<IconDownload size={16} />}
+                      fullWidth
+                    >
+                      Export PNG
+                    </Button>
+                    <Group grow gap="xs">
+                      <Button
+                        variant="outline"
+                        onClick={handleCopyImage}
+                        disabled={!canRender}
+                        leftSection={copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                      >
+                        Copy PNG
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleCopyRaw}
+                        disabled={!payload}
+                        leftSection={copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                      >
+                        Copy raw
+                      </Button>
+                    </Group>
+                  </Stack>
                 </Stack>
-              </Card>
-            </Stack>
-          </div>
+              </div>
+            </div>
+          </Stack>
         )}
       </Container>
 

@@ -10,6 +10,7 @@ import {
   captionFontSize,
   exceedsCapacity,
   payloadByteLength,
+  PREVIEW_QR_WIDTH,
   type QrAppearance,
 } from "@/lib/qr-appearance";
 
@@ -122,7 +123,10 @@ export function QrPreview({
         <div
           ref={containerRef}
           className="qr-preview-stage"
-          style={{ width: "100%", maxWidth: compact ? 220 : 300, margin: "0 auto" }}
+          // PREVIEW_QR_WIDTH remplit la colonne d'aperçu (420px moins les
+          // rembourrages de la carte et du cadre) et sert de référence à
+          // captionFontSize ; 220px garde douze vignettes lisibles en lot.
+          style={{ width: "100%", maxWidth: compact ? 220 : PREVIEW_QR_WIDTH, margin: "0 auto" }}
         />
         {appearance.showFrameText && appearance.frameText && (
           <Text mt="xs" ta="center" size="sm" fw={600} c={captionColorFor(appearance)}>

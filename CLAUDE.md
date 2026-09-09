@@ -65,7 +65,7 @@ Calendar times are deliberately *floating local* (`toVEventDate`, no `Z`, no TZI
 
 ### Batch mode
 
-[components/qr-studio/batch-mode.tsx](components/qr-studio/batch-mode.tsx) is a three-step flow: download an `.xlsx` template → import a filled sheet → export a ZIP of PNGs. It shares the same appearance object as single mode, so a batch always renders with whatever the Appearance panel currently shows.
+[components/qr-studio/batch-mode.tsx](components/qr-studio/batch-mode.tsx) is a three-step flow: download an `.xlsx` template → import a filled sheet → export a ZIP of PNGs. It shares the same appearance object as single mode, so a batch always renders with whatever the Appearance panel currently shows — and the panel itself is only rendered on the Single tab, which is why step 3's help text says so out loud.
 
 - Only the **first sheet** is read, and only the first `MAX_ROWS` (500) rows — beyond that the file is truncated and a warning says so.
 - `rowToFormData` returns `null` for a row whose required fields are missing or malformed; those rows are counted as invalid and skipped rather than failing the import. Messages report `r.index + 2` to match the spreadsheet's 1-based numbering with a header row.
@@ -120,6 +120,8 @@ The library sizes its SVG to the *export* resolution (`appearance.size`, default
 
 **Preview/export parity is the contract here.** The caption used to exist only in the preview, so exported PNGs silently lacked it. Anything added to the preview must also be drawn in `renderQrPngBlob`, and both sides must derive shared values from the same helper — `captionColorFor` and `captionFontSize` in [lib/qr-appearance.ts](lib/qr-appearance.ts) exist so the two cannot drift.
 
+`captionFontSize` scales the exported caption by `PREVIEW_CAPTION_FONT_SIZE / PREVIEW_QR_WIDTH`, and `QrPreview` takes its non-compact `maxWidth` from that same `PREVIEW_QR_WIDTH`. **Resizing the preview means changing the constant, not the component** — hard-coding a new width there would silently make every exported caption the wrong size relative to the code. A test pins the fixed point: `captionFontSize(PREVIEW_QR_WIDTH) === PREVIEW_CAPTION_FONT_SIZE`.
+
 Three traps in the compositing code:
 
 - `ImageBitmap.close()` resets `width`/`height` to **0**. Read the dimensions into locals before closing, or the caption gets drawn over the QR instead of below it — which is exactly the bug that shipped in the first draft of this function.
@@ -127,6 +129,38 @@ Three traps in the compositing code:
 - A canvas 2D context is not available in every environment; the function degrades to the plain QR blob rather than throwing.
 
 Capacity is enforced *before* generation, never by catching: `exceedsCapacity` (a static version-40 byte table per ECL, validated against the real generator in `lib/qr-appearance.test.ts`) is computed during render, gates the image-producing buttons, and shows the byte budget in the badge. The `try`/`catch` around `.update()` is only a net for unexpected library throws — without it, an overflow escapes the effect and takes down the tree, since there is no error boundary. The failure is keyed to a `payload|ecl` signature so it expires during render rather than being cleared by a second `setState`.
+
+## Layout
+
+The Single tab is a two-column grid, `.qr-single-grid`: a `minmax(0, 1fr)` column
+holding the form card *and* the Appearance card, then a 420px `.qr-sticky-aside`
+holding the preview and the export actions. Below `75em` the columns stack and the
+aside drops back to `position: static`, since a sticky panel with nothing beside it
+would just cover the form.
+
+**The Appearance card must stay inside the left grid column.** Moving it to a
+full-width band under the grid ends the aside's grid row, the preview unsticks
+immediately, and you are back to styling a QR you cannot see — which is the exact
+problem this layout was built to fix. Measured before: the preview and the logo
+dropzone sat 1218px apart with nothing sticky between them.
+
+Two supporting rules earn their place:
+
+- `.qr-field-grid` flows form fields into as many ~240px columns as fit. The form
+  column is ~924px wide, so one field per row stretched a “Nickname” input to that
+  full width. `.qr-field-wide` (`grid-column: 1 / -1`) opts a textarea or an address
+  back into a full row.
+- `.qr-type-bar` is a single non-wrapping row that scrolls horizontally. The nine
+  types used to own a 220px column that ran 362px tall and left 1276px of dead
+  space under it.
+
+`AppearancePanel` lays its four sections out with `SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}`
+rather than stacking them; stacked they were 1182px tall, of which 39% was visible
+at load.
+
+The Multiple Codes tab is a `SimpleGrid` of three equal-height step cards over a
+full-width results card. The steps are one-time configuration and the thumbnails are
+what you look at, so the thumbnails get the whole container — six columns at 1400px.
 
 ## Styling: Mantine v9, exclusively
 
@@ -163,7 +197,7 @@ Accessibility conventions worth keeping: decorative icons use `ThemeIcon` (a `di
 - `lib/utils.ts` holds exactly two helpers: `downloadBlob` (anchor-click + delayed `revokeObjectURL`) and `slugify`. Reuse them for any new download path instead of re-rolling the anchor dance.
 - Browser-API features degrade rather than throw: `handleCopyImage` reports through a Mantine notification when the clipboard refuses an image, and `handleShare` shares the PNG when `navigator.canShare` accepts files, falling back to the payload as text. An `AbortError` means the user dismissed the share sheet and is deliberately not reported. Use `notifications.show` for user-facing failures — never `alert()`.
 - **Detect browser capabilities with `useSyncExternalStore`, not `typeof navigator`.** The share button uses it with a server snapshot of `false`, so the server and the client's first render agree and hydration holds; reading `navigator.share` straight in the JSX is the same defect as branching on the colour scheme during render (see Dark mode). The subscribe/snapshot callbacks live at module scope so their identity is stable.
-- Responsive rules belong in [app/globals.css](app/globals.css), keyed to Mantine's breakpoints (`75em` is `lg`). An inline `<style>` in JSX gets hoisted by React 19 and drifts from the rest of the layout. The two page layouts live there as `.qr-single-grid` and `.qr-batch-grid`, both a fixed sidebar column plus `minmax(0, 1fr)` for the rest, collapsing to one column below `75em`. **Do not size these with `repeat(auto-fit, minmax(a, b))`** — that caps *every* track at `b`, so the batch preview panel was stuck at 380px and left 616px of the 1400px container unused.
+- Responsive rules belong in [app/globals.css](app/globals.css), keyed to Mantine's breakpoints (`75em` is `lg`). An inline `<style>` in JSX gets hoisted by React 19 and drifts from the rest of the layout. `repeat(auto-fit, minmax(a, b))` with a **fixed** `b` caps *every* track at `b`, which is what once left 616px of the batch container unused; `minmax(240px, 1fr)` in `.qr-field-grid` is the safe form of the same idiom, because `1fr` caps nothing.
 - `scanabilityWarnings` in [lib/qr-appearance.ts](lib/qr-appearance.ts) is advisory only: it flags foreground/background contrast under 3:1 and a logo with error correction below Q, but never blocks an export. Keep it pure so it stays testable.
 - Objects passed as props to `QrPreview` must be memoised. A fresh `{...appearance, size: 320}` literal per render changes the effect's dependencies and redraws every preview in the batch grid on each keystroke.
 - `defaultDataFor` returns fully populated sample data (a real-looking vCard, a dated event) so the preview is never empty on load — keep that habit for new types.

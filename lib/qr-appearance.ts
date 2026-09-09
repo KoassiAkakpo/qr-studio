@@ -166,14 +166,28 @@ export function captionColorFor(appearance: QrAppearance) {
 }
 
 /**
+ * Largeur d'affichage du QR dans l'aperçu, en pixels CSS.
+ *
+ * Vit ici et non dans le composant parce que `captionFontSize` en dépend :
+ * c'est la référence qui garantit que la légende exportée a la même taille
+ * relative que celle de l'aperçu. Changer l'une sans l'autre casse la parité.
+ */
+export const PREVIEW_QR_WIDTH = 340;
+
+/** Taille de la légende dans l'aperçu, en pixels CSS (Mantine `size="sm"`). */
+export const PREVIEW_CAPTION_FONT_SIZE = 14;
+
+/**
  * Taille de police de la légende, proportionnelle au QR.
  *
- * Le ratio reproduit l'aperçu, où un texte de 14px accompagne un QR affiché à
- * 300px de large : l'export reste donc visuellement identique à l'aperçu quelle
- * que soit la résolution choisie.
+ * Le ratio reproduit l'aperçu : l'export reste visuellement identique quelle que
+ * soit la résolution choisie.
  */
 export function captionFontSize(qrSize: number) {
-  return Math.max(10, Math.round(qrSize * (14 / 300)));
+  return Math.max(
+    10,
+    Math.round(qrSize * (PREVIEW_CAPTION_FONT_SIZE / PREVIEW_QR_WIDTH))
+  );
 }
 
 export function appearanceToStylingOptions(

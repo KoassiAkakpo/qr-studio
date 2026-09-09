@@ -6,6 +6,8 @@ import {
   QR_BYTE_CAPACITY,
   captionColorFor,
   captionFontSize,
+  PREVIEW_CAPTION_FONT_SIZE,
+  PREVIEW_QR_WIDTH,
   capacityFor,
   contrastRatio,
   exceedsCapacity,
@@ -94,10 +96,20 @@ describe("captionColorFor", () => {
 });
 
 describe("captionFontSize", () => {
+  // La parité aperçu/export repose sur ce point fixe : à la largeur d'affichage
+  // de l'aperçu, la fonction doit rendre exactement la police de l'aperçu.
+  it("vaut la police de l'aperçu à la largeur de l'aperçu", () => {
+    expect(captionFontSize(PREVIEW_QR_WIDTH)).toBe(PREVIEW_CAPTION_FONT_SIZE);
+  });
+
   it("reste proportionnelle à la taille d'export", () => {
-    expect(captionFontSize(300)).toBe(14);
-    expect(captionFontSize(640)).toBe(30);
-    expect(captionFontSize(2048)).toBe(96);
+    expect(captionFontSize(640)).toBe(26);
+    expect(captionFontSize(2048)).toBe(84);
+  });
+
+  it("garde le même rapport à la taille quelle que soit la résolution", () => {
+    const ratio = (n: number) => captionFontSize(n) / n;
+    expect(ratio(1024)).toBeCloseTo(ratio(PREVIEW_QR_WIDTH), 3);
   });
 
   it("ne descend jamais sous une taille lisible", () => {

@@ -23,33 +23,67 @@ body {
   display: block;
 }
 
-/* Mise en page de l'onglet Single : barre latérale + formulaire + aperçu.
-   Sous le breakpoint Mantine lg (75em), les trois colonnes s'empilent. */
+/* Champs de formulaire : autant de colonnes d'au moins 240px que la largeur
+   permet. Le maximum est `1fr`, pas une valeur fixe : contrairement à un
+   `minmax(240px, 380px)` — qui plafonnerait *chaque* piste à 380px — les pistes
+   se partagent ici tout l'espace restant. Sans cette grille, la colonne large
+   étirerait un champ « Nickname » sur 924px. */
+.qr-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+/* Un champ qui mérite toute la largeur : adresse, texte libre, description. */
+.qr-field-wide {
+  grid-column: 1 / -1;
+}
+
+/* Onglet Single : formulaire + réglages à gauche, aperçu à droite.
+
+   Les deux cartes de gauche partagent volontairement la *même* colonne de
+   grille. C'est ce qui permet à `.qr-sticky-aside` de rester accroché pendant
+   tout le défilement : une bande pleine largeur placée sous la grille sortirait
+   de la rangée de l'aperçu, qui décollerait aussitôt et laisserait régler
+   l'apparence sans voir le QR. */
 .qr-single-grid {
   display: grid;
   gap: 24px;
   align-items: start;
-  grid-template-columns: 220px minmax(0, 1fr) minmax(0, 420px);
+  grid-template-columns: minmax(0, 1fr) 420px;
+}
+
+/* Le décalage laisse passer le bandeau collant de l'en-tête. */
+.qr-sticky-aside {
+  position: sticky;
+  top: 76px;
+}
+
+/* Barre des types : une seule rangée qui défile latéralement plutôt que de
+   passer à la ligne, pour que la hauteur de l'en-tête ne bouge pas d'un type
+   à l'autre. */
+.qr-type-bar {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+.qr-type-bar > * {
+  flex: 0 0 auto;
 }
 
 @media (max-width: 75em) {
   .qr-single-grid {
     grid-template-columns: 1fr;
   }
-}
 
-/* Mise en page de l'onglet Multiple Codes : colonne d'étapes à largeur fixe,
-   panneau d'aperçu qui occupe tout le reste. `minmax(0, 1fr)` est nécessaire
-   pour que la grille interne des vignettes puisse rétrécir au lieu de déborder. */
-.qr-batch-grid {
-  display: grid;
-  gap: 24px;
-  align-items: start;
-  grid-template-columns: 380px minmax(0, 1fr);
-}
-
-@media (max-width: 75em) {
-  .qr-batch-grid {
-    grid-template-columns: 1fr;
+  /* Une fois empilé, l'aperçu n'a plus de colonne voisine à accompagner :
+     le garder collant le figerait au-dessus du formulaire. */
+  .qr-sticky-aside {
+    position: static;
   }
 }
