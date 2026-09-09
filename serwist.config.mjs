@@ -1,4 +1,5 @@
 // @ts-check
+import { existsSync, readFileSync } from "node:fs";
 import { generateGlobPatterns, serwist } from "@serwist/next/config";
 
 /**
@@ -43,26 +44,32 @@ export default serwist.withNextConfig((nextConfig) => {
     templatedURLs: {
       "/manifest.webmanifest": [`${distDir}server/app/manifest.webmanifest.body`],
     },
-    manifestTransforms: [
-      (entries) => {
-        // Les icônes déclarées par convention de fichier (app/icon.svg,
-        // app/favicon.ico, app/apple-icon.png) sont émises dans
-        // `static/media/<nom>.<hash>.<ext>` mais servies à
-        // `/<nom>.<ext>?<nom>.<hash>.<ext>`. Précachées sous l'URL du build,
-        // elles ne répondaient à aucune requête : hors ligne, l'onglet perdait
-        // son icône. On les réécrit vers l'URL que le HTML référence vraiment.
-        const metadataIcon = new RegExp(
-          `^${distDir}static/media/((?:favicon|icon|apple-icon)\\d*)\\.([^/]+)\\.(ico|svg|png)$`,
-        );
-        const manifest = entries.map((entry) => {
-          const match = entry.url.match(metadataIcon);
-          if (!match) return entry;
-          const [, name, , ext] = match;
-          const file = entry.url.slice(entry.url.lastIndexOf("/") + 1);
-          return { ...entry, url: `/${name}.${ext}?${file}` };
-        });
-        return { manifest, warnings: [] };
-      },
-    ],
+    // Les icônes déclarées par convention de fichier (app/icon.svg,
+    // app/favicon.ico, app/apple-icon.png) sont émises sous un nom
+    // (`static/media/icon.<hash>.svg`) et servies sous un autre
+    // (`/icon.svg?icon.<hash>.svg`) : les globs les précachent donc sous une
+    // URL que rien ne demande, et hors ligne l'onglet perd son icône.
+    //
+    // On lit les URLs directement dans le HTML rendu plutôt que de les dériver
+    // du chemin de build. Une première version réécrivait les entrées avec une
+    // expression rationnelle ancrée sur `distDir` : elle marchait en local et
+    // ne matchait pas sur Vercel, ce qui a fait échouer le déploiement. Ici la
+    // source est celle que le navigateur suit vraiment, donc les deux ne
+    // peuvent plus diverger.
+    //
+    // `revision: null` parce que ces URLs portent déjà le hash du contenu dans
+    // leur query. Le filtre `existsSync` garde le lien avec le disque : une
+    // entrée de précache qui répondrait 404 ferait échouer l'installation du
+    // worker en entier, donc on n'ajoute que des URLs adossées à une route
+    // réellement rendue.
+    additionalPrecacheEntries: [
+      ...new Set(
+        [...readFileSync(`${distDir}server/app/index.html`, "utf8")
+          .matchAll(/(?:href|src)="(\/[^"]*)"/g)].map((m) => m[1]),
+      ),
+    ]
+      .filter((url) => !url.startsWith("/_next/") && url !== "/manifest.webmanifest")
+      .filter((url) => existsSync(`${distDir}server/app${url.split("?")[0]}.body`))
+      .map((url) => ({ url, revision: null })),
   };
 });

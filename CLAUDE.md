@@ -182,16 +182,26 @@ of leaving them to be noticed:
 - **Metadata icons are emitted under one name and served under another.**
   `app/icon.svg` is written to `static/media/icon.<hash>.svg` but referenced as
   `/icon.svg?icon.<hash>.svg`, so precaching the build URL answered no request at
-  all and the tab lost its icon offline. A `manifestTransforms` entry rewrites
-  them. `/manifest.webmanifest` is an app route in no glob at all, so it is
-  precached through `templatedURLs`, keyed to the rendered body so the revision
-  invalidates when `app/manifest.ts` changes.
+  all and the tab lost its icon offline. `additionalPrecacheEntries` therefore
+  reads those URLs **out of the rendered HTML**, not out of the build paths.
+  The first version rewrote the entries with a `manifestTransforms` regex
+  anchored on `distDir`; it matched locally, did not match on Vercel, and broke
+  the deploy. Reading the HTML uses the same source the browser follows, so the
+  two cannot diverge. Their `revision` is `null` because the URL already carries
+  the content hash in its query, and an `existsSync` filter keeps each entry tied
+  to a route that really rendered — **a precache entry that 404s fails the whole
+  worker install**, since precaching is all-or-nothing.
+  `/manifest.webmanifest` is an app route in no glob at all, so it is precached
+  through `templatedURLs`, keyed to the rendered body so the revision invalidates
+  when `app/manifest.ts` changes.
 
 The check asserts the root document, every `.next/static` js/css/font, **and every
 same-origin URL the prerendered HTML references** — that last one is the general
 case, since it tests what the page actually requests rather than what the build
 wrote to disk. It is the check that catches an asset served under a URL that is
-not its filename.
+not its filename, and it is what turned that Vercel breakage into a failed build
+instead of a silently icon-less deploy — so treat a failure there as a real
+finding, and never as a check to relax.
 
 ### Updates are user-driven, never automatic
 
