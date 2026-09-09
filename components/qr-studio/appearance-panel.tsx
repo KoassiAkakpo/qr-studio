@@ -5,7 +5,6 @@ import {
   Alert,
   ColorInput,
   Divider,
-  FileInput,
   Group,
   Image,
   NumberInput,
@@ -17,9 +16,23 @@ import {
   TextInput,
   UnstyledButton,
 } from "@mantine/core";
+import { IconPhoto } from "@tabler/icons-react";
 import { scanabilityWarnings, type QrAppearance } from "@/lib/qr-appearance";
+import { FileDropzone, type AcceptMap } from "./file-dropzone";
 
+// Le logo est encodé en data URL et embarqué dans chaque rendu : un fichier
+// volumineux ralentirait tout un export de lot.
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+
+// Les formats que qr-code-styling sait dessiner dans un canvas. Pas de HEIC :
+// Chrome et Firefox ne le décodent pas.
+const LOGO_ACCEPT: AcceptMap = {
+  "image/png": [".png"],
+  "image/jpeg": [".jpg", ".jpeg"],
+  "image/svg+xml": [".svg"],
+  "image/webp": [".webp"],
+  "image/gif": [".gif"],
+};
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -40,24 +53,9 @@ export function AppearancePanel({
 
   const [logoError, setLogoError] = useState("");
 
-  const handleLogo = (file: File | null) => {
-    setLogoError("");
-    if (!file) {
-      set({ logoDataUrl: "" });
-      return;
-    }
-    if (!file.type.startsWith("image/")) {
-      setLogoError("That file is not an image.");
-      return;
-    }
-    // Le logo est encodé en data URL et embarqué dans chaque rendu : un fichier
-    // volumineux ralentirait tout un export de lot.
-    if (file.size > MAX_LOGO_BYTES) {
-      setLogoError(
-        `Image is ${(file.size / 1024 / 1024).toFixed(1)} MB; keep it under ${MAX_LOGO_BYTES / 1024 / 1024} MB.`
-      );
-      return;
-    }
+  // Le type et la taille sont filtrés en amont par la zone de dépôt : il ne
+  // reste ici que la lecture, dont seul l'échec disque peut encore rater.
+  const handleLogo = (file: File) => {
     const reader = new FileReader();
     reader.onload = () => set({ logoDataUrl: String(reader.result ?? "") });
     reader.onerror = () => setLogoError("Could not read that file.");
@@ -178,11 +176,43 @@ export function AppearancePanel({
 
       <Stack gap="xs">
         <SectionLabel>Logo & frame</SectionLabel>
-        <FileInput label="Center logo (PNG/JPG)" placeholder="Pick image" accept="image/*" value={null} onChange={handleLogo} clearable={false} />
+        <Text size="sm" fw={500}>Centre logo</Text>
+        {/* La vignette prend la place de l'icône : la zone reste la même cible de
+            dépôt, et déposer une autre image remplace celle en cours. */}
+        <FileDropzone
+          onFile={handleLogo}
+          onRejectMessage={setLogoError}
+          accept={LOGO_ACCEPT}
+          acceptLabel="an image (PNG, JPG, SVG, WebP or GIF)"
+          maxSize={MAX_LOGO_BYTES}
+          inputLabel="Centre logo image"
+          idleIcon={
+            value.logoDataUrl ? (
+              <Image src={value.logoDataUrl} alt="" h={44} w={44} radius="sm" fit="contain" />
+            ) : (
+              <IconPhoto size={30} stroke={1.5} color="var(--mantine-color-dimmed)" />
+            )
+          }
+        >
+          <Text size="sm" fw={500}>
+            {value.logoDataUrl ? "Drop another image to replace" : "Drop an image or click to browse"}
+          </Text>
+          <Text size="xs" c="dimmed">
+            PNG, JPG, SVG, WebP or GIF · up to {MAX_LOGO_BYTES / 1024 / 1024} MB
+          </Text>
+        </FileDropzone>
         {logoError && <Text size="xs" c="red">{logoError}</Text>}
         {value.logoDataUrl && (
           <>
-            <Text size="sm">Logo size: {Math.round(value.logoSizeRatio * 100)}% of the code</Text>
+            <Group justify="space-between">
+              <Text size="sm">Logo size: {Math.round(value.logoSizeRatio * 100)}% of the code</Text>
+              <UnstyledButton
+                onClick={() => { setLogoError(""); set({ logoDataUrl: "" }); }}
+                style={{ fontSize: 12, color: "var(--mantine-color-red-6)", textDecoration: "underline" }}
+              >
+                Remove
+              </UnstyledButton>
+            </Group>
             <Slider
               value={value.logoSizeRatio}
               min={0.1}
@@ -192,14 +222,6 @@ export function AppearancePanel({
               onChange={(v) => set({ logoSizeRatio: v })}
             />
           </>
-        )}
-        {value.logoDataUrl && (
-          <Group>
-            <Image src={value.logoDataUrl} alt="logo" h={40} w={40} radius="md" fit="contain" />
-            <UnstyledButton onClick={() => set({ logoDataUrl: "" })} style={{ fontSize: 12, color: "var(--mantine-color-red-6)", textDecoration: "underline" }}>
-              Remove
-            </UnstyledButton>
-          </Group>
         )}
         <Switch label="Caption under QR" checked={value.showFrameText} onChange={(e) => set({ showFrameText: e.currentTarget.checked })} />
         {value.showFrameText && (

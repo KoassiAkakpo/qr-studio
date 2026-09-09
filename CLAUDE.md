@@ -18,7 +18,8 @@ npx vitest run -t "place la civilité"          # a single test by name
 ```
 
 Vitest is configured in `vitest.config.mts` (node environment, `@/*` alias, only
-`lib/**/*.test.ts` is collected). Test names and comments in the test suite are in
+`lib/**/*.test.ts` is collected — which is why pure logic belongs in `lib/` even
+when it only serves one component, as `lib/dropzone-messages.ts` does). Test names and comments in the test suite are in
 French, matching the audit notes in [PLAN.md](PLAN.md). There is no CI config.
 
 `lib/qr-payloads.test.ts` locks down the wire format of every payload type. **Treat a
@@ -78,6 +79,34 @@ Calendar times are deliberately *floating local* (`toVEventDate`, no `Z`, no TZI
 
 `lib/excel.test.ts` runs real workbooks through `parseExcelFile`, so it is the guard that makes changing the spreadsheet library verifiable rather than a guess. `XLSX.writeFile` (used by `downloadTemplate`) is browser-only and therefore not covered — check it by hand in the batch tab after any version bump.
 
+### File pickers
+
+Both file inputs are `@mantine/dropzone` zones behind one wrapper,
+[components/qr-studio/file-dropzone.tsx](components/qr-studio/file-dropzone.tsx).
+There is no bare `FileInput` left, and `<input type="file">` should not come back
+by hand.
+
+- **`accept` maps each MIME type to its extensions**, and both halves earn their
+  place: `attr-accept` matches the file's MIME type *or* the end of its name, and
+  a `.csv` arrives labelled `application/vnd.ms-excel` from Excel or with no type
+  at all from an archive. A MIME-only map silently rejects those files.
+- Type and size are enforced declaratively (`accept`, `maxSize`, `multiple={false}`),
+  so the `onFile` handlers only read the file. Do not re-check the size in the
+  handler — the limit would then live in two places.
+- **The zone's content is inert** (`pointer-events: none`, set by Mantine), which is
+  what lets the logo thumbnail sit inside as the drop target's icon. Buttons must
+  therefore live *beside* the zone, never inside it — that is why “Remove” sits on
+  the size row.
+- `onReject` fires *before* `onDrop`. Dropping one good and one bad file shows the
+  error and then clears it, which is the intended outcome; do not "fix" it by
+  reordering.
+- `describeRejection` in [lib/dropzone-messages.ts](lib/dropzone-messages.ts) collapses
+  react-dropzone's per-file error list into one message, preferring type over size
+  over count. It is pure and tested; the raw library message is only a fallback for
+  an unexpected code.
+- The zone root is a tabbable `div` with no label of its own, so `inputLabel` is
+  required and lands on the hidden input as `aria-label`.
+
 ### Rendering and export
 
 `qr-code-styling` is used two different ways from [components/qr-studio/qr-preview.tsx](components/qr-studio/qr-preview.tsx):
@@ -107,6 +136,11 @@ The UI was migrated from shadcn to Mantine v9 (commit `994ad01`), and Tailwind w
 
 PostCSS runs `postcss-preset-mantine`, then `postcss-simple-vars` supplying the `$mantine-breakpoint-*` variables — Mantine mixins and breakpoint vars in CSS depend on that chain.
 
+Each Mantine package ships its own stylesheet and every one must be imported in
+`app/layout.tsx`, after `@mantine/core/styles.css`: currently `notifications` and
+`dropzone`. A missing import does not fail the build — the component simply
+renders unstyled, so add the import in the same commit as the package.
+
 The Geist fonts reach the page through the Mantine theme, not a CSS framework: `createTheme` in `app/layout.tsx` points `fontFamily`, `fontFamilyMonospace` and `headings.fontFamily` at the `--font-geist-*` variables that `next/font` defines via the `<html>` className. Removing either half silently falls back to Mantine's system stack.
 
 `app/layout.tsx` must also keep `mantineHtmlProps` on `<html>` and `<ColorSchemeScript defaultColorScheme="auto" />` in `<head>`, with the same `defaultColorScheme` on `MantineProvider`.
@@ -120,7 +154,7 @@ The scheme follows the OS by default and the header toggle overrides it, persist
 
 Accessibility conventions worth keeping: decorative icons use `ThemeIcon` (a `div`), never `ActionIcon` with `pointerEvents: "none"`, which leaves a focusable but inert button in the tab order. Every input needs an accessible name — a visible `label` where the design has room, `aria-label` where it does not (the contact form is placeholder-only by design, so its fields carry `aria-label`).
 
-`next.config.ts` sets `optimizePackageImports` for `@mantine/core` and `@mantine/hooks`; add new large icon/component packages there rather than deep-importing.
+`next.config.ts` sets `optimizePackageImports` for `@mantine/core`, `@mantine/hooks` and `@mantine/dropzone`; add new large icon/component packages there rather than deep-importing.
 
 ## Conventions worth matching
 

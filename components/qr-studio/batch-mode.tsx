@@ -7,7 +7,6 @@ import {
   Badge,
   Button,
   Card,
-  FileInput,
   Group,
   Progress,
   Select,
@@ -16,6 +15,7 @@ import {
   Text,
   Title,
 } from "@mantine/core";
+import { IconFileSpreadsheet } from "@tabler/icons-react";
 import { parseExcelFile, downloadTemplate } from "@/lib/excel";
 import {
   buildQrPayload,
@@ -29,9 +29,24 @@ import {
 } from "@/lib/qr-payloads";
 import type { QrAppearance } from "@/lib/qr-appearance";
 import { dedupeFilenames, downloadBlob, slugify } from "@/lib/utils";
+import { FileDropzone, type AcceptMap } from "./file-dropzone";
 import { QrPreview, renderQrPngBlob } from "./qr-preview";
 
 const MAX_ROWS = 500;
+
+// `parseExcelFile` charge le classeur entier en mémoire : sans plafond, un
+// fichier de plusieurs centaines de mégaoctets figerait l'onglet avant même
+// qu'on puisse le tronquer à MAX_ROWS.
+const MAX_SHEET_BYTES = 10 * 1024 * 1024;
+
+// Excel étiquette parfois un .csv en `application/vnd.ms-excel`, et un fichier
+// venant d'une archive arrive sans type du tout : les extensions rattrapent
+// les deux cas.
+const SHEET_ACCEPT: AcceptMap = {
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+  "application/vnd.ms-excel": [".xls"],
+  "text/csv": [".csv"],
+};
 
 interface BatchRow {
   index: number;
@@ -53,6 +68,7 @@ export function BatchMode({
   const [rows, setRows] = useState<BatchRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
+  const [parsing, setParsing] = useState(false);
   const [done, setDone] = useState(0);
   const [total, setTotal] = useState(0);
   // Un import réussi mais partiel n'est pas une erreur : le distinguer évite
@@ -80,16 +96,15 @@ export function BatchMode({
     setTotal(0);
   };
 
-  const handleFile = async (file: File | null) => {
-    if (!file) return;
+  const handleFile = async (file: File) => {
     setWarning("");
     setError("");
+    setParsing(true);
     setStatus("Reading spreadsheet…");
     try {
       const raw = await parseExcelFile(file);
       if (raw.length === 0) {
         setError("No rows found in the first sheet.");
-        setStatus("");
         return;
       }
       const sliced = raw.slice(0, MAX_ROWS);
@@ -114,9 +129,10 @@ export function BatchMode({
       setRows(
         parsed.map(({ base, ...r }) => ({ ...r, filename: r.data ? names[n++] : base }))
       );
-      setStatus("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to parse file.");
+    } finally {
+      setParsing(false);
       setStatus("");
     }
   };
@@ -191,13 +207,24 @@ export function BatchMode({
         <Card withBorder radius="md" p="md">
           <Stack gap="sm">
             <Title order={6}>2 · Import Excel / CSV</Title>
-            <FileInput
-              label={`Spreadsheet (.xlsx, .xls, .csv — max ${MAX_ROWS} rows)`}
-              placeholder="Click to browse"
-              accept=".xlsx,.xls,.csv"
-              value={null}
-              onChange={handleFile}
-            />
+            <FileDropzone
+              onFile={handleFile}
+              onRejectMessage={setError}
+              accept={SHEET_ACCEPT}
+              acceptLabel="a spreadsheet (.xlsx, .xls or .csv)"
+              maxSize={MAX_SHEET_BYTES}
+              loading={parsing}
+              disabled={busy}
+              inputLabel="Spreadsheet to import"
+              idleIcon={
+                <IconFileSpreadsheet size={30} stroke={1.5} color="var(--mantine-color-dimmed)" />
+              }
+            >
+              <Text size="sm" fw={500}>Drop a spreadsheet or click to browse</Text>
+              <Text size="xs" c="dimmed">
+                .xlsx, .xls or .csv · first {MAX_ROWS} rows
+              </Text>
+            </FileDropzone>
             {rows.length > 0 && (
               <Button variant="subtle" size="xs" fullWidth onClick={reset} disabled={busy}>
                 Clear {rows.length} rows

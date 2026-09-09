@@ -45,8 +45,8 @@ are invisible until someone scans the code with a real phone.
 
 ## Batch mode
 
-Pick a type, download the generated `.xlsx` template, fill it in, import it, and
-export a ZIP of PNGs. Up to 500 rows per file.
+Pick a type, download the generated `.xlsx` template, fill it in, drop it on the
+import zone, and export a ZIP of PNGs. Up to 500 rows per file, 10 MB per file.
 
 - Column names are matched case-insensitively.
 - Rows missing or malforming a required field are skipped and listed, rather than
@@ -58,8 +58,9 @@ export a ZIP of PNGs. Up to 500 rows per file.
 ## Appearance
 
 Pixel and corner shapes, solid or gradient colours (linear or radial), a
-transparent or solid background, margin, a centre logo with adjustable size, a
-caption drawn beneath the code, error correction level, and export resolution.
+transparent or solid background, margin, a centre logo with adjustable size
+(drag an image in, or click to browse — up to 2 MB), a caption drawn beneath the
+code, error correction level, and export resolution.
 
 The panel warns when a combination is likely to scan badly — pixels too close in
 colour to the background, or a logo with error correction too low to recover the
@@ -67,8 +68,8 @@ modules it covers.
 
 ## Stack
 
-Next.js 16 (App Router, React 19), Mantine v9, `qr-code-styling`, JSZip and
-SheetJS. Vitest for tests.
+Next.js 16 (App Router, React 19), Mantine v9 with `@mantine/dropzone` and
+`@mantine/notifications`, `qr-code-styling`, JSZip and SheetJS. Vitest for tests.
 
 `xlsx` is installed from a vendored archive rather than npm; see
 [vendor/README.md](vendor/README.md) for why and how to update it.

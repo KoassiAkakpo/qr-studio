@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   // compilation et d'exécution restent affichées.
   devIndicators: false,
   experimental: {
-    optimizePackageImports: ["@mantine/core", "@mantine/hooks"],
+    optimizePackageImports: ["@mantine/core", "@mantine/hooks", "@mantine/dropzone"],
   },
 };
 
