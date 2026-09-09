@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Bundle minifié produit par `serwist build` : le linter n'a rien à y dire
+    // et le rapport se noie sinon dans ses 70 avertissements.
+    "public/sw.js",
   ]),
 ]);
 

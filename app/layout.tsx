@@ -7,6 +7,7 @@ import {
   mantineHtmlProps,
 } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
+import { PwaProvider } from "@/components/pwa-provider";
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import "@mantine/dropzone/styles.css";
@@ -47,7 +48,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <MantineProvider theme={theme} defaultColorScheme="auto">
           <Notifications position="top-right" />
-          {children}
+          {/* Enveloppe l'app plutôt que le seul header : `useSerwist()` doit
+              rester disponible si d'autres composants s'y branchent. */}
+          <PwaProvider>{children}</PwaProvider>
         </MantineProvider>
       </body>
     </html>

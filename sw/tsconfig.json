@@ -1,0 +1,16 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    // `webworker` et `dom` déclarent les mêmes globales avec des types
+    // différents et ne peuvent pas cohabiter : le worker a donc son propre
+    // projet, et le tsconfig racine l'exclut. `serwist build` le compile avec
+    // esbuild, qui efface les types sans les vérifier — d'où le `tsc -p sw`
+    // explicite en tête du script `build`, sans lequel une erreur de type ici
+    // partirait en production sans un mot.
+    "lib": ["webworker", "esnext"],
+    "types": [],
+    "noEmit": true
+  },
+  "include": ["./**/*.ts"],
+  "exclude": []
+}
