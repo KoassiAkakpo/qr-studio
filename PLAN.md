@@ -12,7 +12,7 @@ Ordre de traitement : les lots 1 à 3 changent ce que le produit livre réelleme
 
 ### ✅ 1. Le caption n'est jamais dans le PNG exporté **[vérifié]**
 
-`frameText` n'apparaît que dans `components/qr-studio/qr-preview.tsx` (rendu React) ;
+`frameText` n'apparaît que dans `components/qr-preview.tsx` (rendu React) ;
 `renderQrPngBlob` et `appearanceToStylingOptions` l'ignorent totalement. Comme
 `showFrameText: true` par défaut avec « Scan for details », **tout utilisateur voit
 un aperçu qui ne correspond pas à son export.**

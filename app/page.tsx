@@ -53,10 +53,10 @@ import {
   payloadByteLength,
   type QrAppearance,
 } from "@/lib/qr-appearance";
-import { TypeForm } from "@/components/qr-studio/type-forms";
-import { QrPreview, renderQrPngBlob } from "@/components/qr-studio/qr-preview";
-import { AppearancePanel } from "@/components/qr-studio/appearance-panel";
-import { BatchMode } from "@/components/qr-studio/batch-mode";
+import { TypeForm } from "@/components/type-forms";
+import { QrPreview, renderQrPngBlob } from "@/components/qr-preview";
+import { AppearancePanel } from "@/components/appearance-panel";
+import { BatchMode } from "@/components/batch-mode";
 
 /**
  * `navigator` n'existe pas au rendu serveur. useSyncExternalStore expose un

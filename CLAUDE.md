@@ -48,7 +48,7 @@ Almost every change touches one of two independent concerns, and keeping them se
 `QrType` is a 9-member union and `QrFormData` is a discriminated union on `type`. Because the switch statements return from every branch with no `default`, adding a member to `QrType` makes TypeScript flag every place that must be updated. Expect to touch all of these:
 
 - [lib/qr-payloads.ts](lib/qr-payloads.ts): the `QrType` union, a `…Data` interface, a `QrFormData` arm, `QR_TYPE_META` (label/placeholder/hint), `defaultDataFor`, `buildQrPayload`, and the three batch helpers `templateHeadersFor` / `templateRowFor` / `rowToFormData`.
-- [components/qr-studio/type-forms.tsx](components/qr-studio/type-forms.tsx): a `TypeForm` case.
+- [components/type-forms.tsx](components/type-forms.tsx): a `TypeForm` case.
 - [app/page.tsx](app/page.tsx): an entry in `TYPE_ICONS` — the only thing left outside `lib/`, because icons are JSX. It is typed `Record<QrType, ReactNode>`, so TypeScript refuses to compile until you add it.
 
 `TYPE_ORDER` is derived from `QR_TYPE_META`'s keys, not maintained by hand, and drives both the sidebar and the batch `Select`. A new type appears in both automatically.
@@ -65,7 +65,7 @@ Calendar times are deliberately *floating local* (`toVEventDate`, no `Z`, no TZI
 
 ### Batch mode
 
-[components/qr-studio/batch-mode.tsx](components/qr-studio/batch-mode.tsx) is a three-step flow: download an `.xlsx` template → import a filled sheet → export a ZIP of PNGs. It shares the same appearance object as single mode — `AppearancePanel` is rendered in both tabs against the same `appearance` state, so a change made in one is immediately in effect in the other.
+[components/batch-mode.tsx](components/batch-mode.tsx) is a three-step flow: download an `.xlsx` template → import a filled sheet → export a ZIP of PNGs. It shares the same appearance object as single mode — `AppearancePanel` is rendered in both tabs against the same `appearance` state, so a change made in one is immediately in effect in the other.
 
 - Only the **first sheet** is read, and only the first `MAX_ROWS` (500) rows — beyond that the file is truncated and a warning says so.
 - `rowToFormData` returns `null` for a row whose required fields are missing or malformed; those rows are counted as invalid and skipped rather than failing the import. Messages report `r.index + 2` to match the spreadsheet's 1-based numbering with a header row.
@@ -82,7 +82,7 @@ Calendar times are deliberately *floating local* (`toVEventDate`, no `Z`, no TZI
 ### File pickers
 
 Both file inputs are `@mantine/dropzone` zones behind one wrapper,
-[components/qr-studio/file-dropzone.tsx](components/qr-studio/file-dropzone.tsx).
+[components/file-dropzone.tsx](components/file-dropzone.tsx).
 There is no bare `FileInput` left, and `<input type="file">` should not come back
 by hand.
 
@@ -109,7 +109,7 @@ by hand.
 
 ### Rendering and export
 
-`qr-code-styling` is used two different ways from [components/qr-studio/qr-preview.tsx](components/qr-studio/qr-preview.tsx):
+`qr-code-styling` is used two different ways from [components/qr-preview.tsx](components/qr-preview.tsx):
 
 - **Preview**: `type: "svg"`, one long-lived `QRCodeStyling` instance kept in a ref and mutated via `.update()` on each change — never re-instantiated, or the DOM node is orphaned.
 - **Export**: a throwaway `type: "canvas"` instance and `getRawData("png")`, then the caption is composited on a 2D canvas because `qr-code-styling` cannot draw text.
@@ -211,7 +211,7 @@ Accessibility conventions worth keeping: decorative icons use `ThemeIcon` (a `di
 
 - Shape labels live once, in `DOTS_TYPE_LABELS` / `CORNER_TYPE_LABELS` in [lib/qr-appearance.ts](lib/qr-appearance.ts). `AppearancePanel` derives its `Select` data from them and `describeAppearance` reuses them, so a new shape needs one entry, not three. Both are `Record<…Type, string>`, so TypeScript demands the entry.
 - Path alias `@/*` maps to the repo root: `@/lib/...`, `@/components/...`.
-- Every component under `components/qr-studio/` is `"use client"`, as is `app/page.tsx`.
+- Every component under `components/` is `"use client"`, as is `app/page.tsx`.
 - `lib/utils.ts` holds exactly two helpers: `downloadBlob` (anchor-click + delayed `revokeObjectURL`) and `slugify`. Reuse them for any new download path instead of re-rolling the anchor dance.
 - Browser-API features degrade rather than throw: `handleCopyImage` reports through a Mantine notification when the clipboard refuses an image, and `handleShare` shares the PNG when `navigator.canShare` accepts files, falling back to the payload as text. An `AbortError` means the user dismissed the share sheet and is deliberately not reported. Use `notifications.show` for user-facing failures — never `alert()`.
 - **Detect browser capabilities with `useSyncExternalStore`, not `typeof navigator`.** The share button uses it with a server snapshot of `false`, so the server and the client's first render agree and hydration holds; reading `navigator.share` straight in the JSX is the same defect as branching on the colour scheme during render (see Dark mode). The subscribe/snapshot callbacks live at module scope so their identity is stable.
