@@ -19,6 +19,7 @@ import {
   useMantineColorScheme,
 } from "@mantine/core";
 import {
+  IconBrandGithub,
   IconCalendar,
   IconCheck,
   IconCopy,
@@ -70,6 +71,8 @@ const readShareSupport = () =>
 const noShareOnServer = () => false;
 
 type PreviewTab = "qr" | "raw";
+
+const SOURCE_URL = "https://github.com/KoassiAkakpo/qr-studio";
 
 const TYPE_ICONS: Record<QrType, React.ReactNode> = {
   calendar: <IconCalendar size={16} />,
@@ -208,6 +211,21 @@ export default function Home() {
               <Title order={4}>QR Studio</Title>
             </Group>
             <Group gap="xs" wrap="wrap">
+              {/* ActionIcon polymorphe en <a> : un bouton enveloppé dans un lien
+                  serait un contrôle interactif imbriqué dans un autre. `rel`
+                  empêche la page ouverte d'atteindre `window.opener`. */}
+              <ActionIcon
+                component="a"
+                href={SOURCE_URL}
+                target="_blank"
+                rel="noreferrer noopener"
+                variant="default"
+                size="lg"
+                radius="md"
+                aria-label="View the source on GitHub"
+              >
+                <IconBrandGithub size={18} />
+              </ActionIcon>
               {/* Les deux icônes sont rendues et c'est le CSS qui en masque une.
                   Choisir en JS ferait diverger le rendu serveur du premier rendu
                   client dès qu'un thème explicite est stocké, et l'hydratation

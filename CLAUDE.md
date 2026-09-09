@@ -207,6 +207,39 @@ Accessibility conventions worth keeping: decorative icons use `ThemeIcon` (a `di
 
 `next.config.ts` sets `optimizePackageImports` for `@mantine/core`, `@mantine/hooks` and `@mantine/dropzone`; add new large icon/component packages there rather than deep-importing.
 
+### App icons
+
+The tab icon is a pair, both picked up by Next's metadata file conventions from
+`app/`: [app/icon.svg](app/icon.svg) is the source of truth and
+`app/favicon.ico` is **derived from it**, not drawn separately. Regenerate the
+`.ico` after any edit to the SVG, or the two drift:
+
+```bash
+magick -density 2304 -background none app/icon.svg -depth 8 PNG32:/tmp/m.png
+for s in 16 32 48; do magick /tmp/m.png -filter box -resize ${s}x${s} -depth 8 PNG32:/tmp/f$s.png; done
+magick /tmp/f16.png /tmp/f32.png /tmp/f48.png app/favicon.ico
+```
+
+Two things in that command are load-bearing. ImageMagick's own SVG renderer
+drops the rounded background when asked for a small raster directly, so the
+`.ico` frames must come from **one large render** (768px, an integer multiple of
+16/32/48) downsampled with `-filter box` — box averaging over uniform blocks is
+exact, where the default filter softens every module edge.
+
+The SVG's geometry is arithmetic, not taste: a 7-module grid inside a
+**half**-module margin is 8 module widths across, and 8 divides 16, 32, 48 and
+64, so every favicon size lands on whole pixels. A full-module margin around an
+8-module grid — the obvious first construction — gives 1.5px modules at 16px and
+the pattern turns to mush. Two smaller constraints: `rx` is 6 rather than 7
+because a radius of 7 clips the corner of the finder pattern at (2,2), and no
+data module may sit orthogonally next to a finder — it merges with it on screen
+and reads as a rendering fault, which is why the asymmetry module is at (3,3),
+diagonal to one.
+
+Next reports the `.ico` in `<head>` as `sizes="48x48"` (it takes the last frame),
+so browsers wanting a small icon use the SVG. The extra `.ico` frames are there
+for clients that ignore `sizes` and for bare `/favicon.ico` requests.
+
 ## Conventions worth matching
 
 - Shape labels live once, in `DOTS_TYPE_LABELS` / `CORNER_TYPE_LABELS` in [lib/qr-appearance.ts](lib/qr-appearance.ts). `AppearancePanel` derives its `Select` data from them and `describeAppearance` reuses them, so a new shape needs one entry, not three. Both are `Record<…Type, string>`, so TypeScript demands the entry.
