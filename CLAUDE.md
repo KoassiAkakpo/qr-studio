@@ -162,8 +162,12 @@ Two supporting rules earn their place:
   The cost is that a `Grid` section does not line its column edges up with a
   `.qr-field-grid` section above or below it, visible in the Person form where
   Titles is two columns and the three sections under it are three; the orphan was
-  worse. Note also that `Grid`'s default gutter is `md` (16px) against this grid's
-  12px, so field widths differ by ~2px between adjacent sections.
+  worse. Both mechanisms take their gap from **one token**: `gap="sm"` on the
+  `Grid`s and `var(--mantine-spacing-sm)` on `.qr-field-grid`. `Grid` defaults to
+  `md` (16px), which made field widths differ by ~2px between adjacent sections,
+  so do not drop the explicit `gap`. Note the prop is `gap` in Mantine v9 — it was
+  `gutter` in earlier versions, and `gutter` now type-errors rather than being
+  silently ignored.
 - `.qr-type-bar` is a single non-wrapping row that scrolls horizontally. The nine
   types used to own a 220px column that ran 362px tall and left 1276px of dead
   space under it. Because it scrolls, the active type can start off-screen on a

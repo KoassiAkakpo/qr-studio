@@ -31,7 +31,10 @@ body {
 .qr-field-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
+  /* Même token que le `gutter="sm"` des sections en Grid de type-forms.tsx :
+     les deux mécanismes doivent produire le même écart, sinon la largeur des
+     champs diffère d'une section à l'autre. */
+  gap: var(--mantine-spacing-sm);
   align-items: start;
 }
 

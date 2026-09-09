@@ -88,8 +88,8 @@ export function TypeForm({
     case "email":
       return (
         <Section title="Email details">
-          <Grid>
-            <Grid.Col span={{ base: 12, sm: 6, md: 6 }}>
+          <Grid gap="sm">
+            <Grid.Col span={{ base: 12, sm: 6 }}>
               <TextInput
                 label="To"
                 placeholder="name@example.com"
@@ -102,7 +102,7 @@ export function TypeForm({
                 }
               />
             </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 6 }}>
+            <Grid.Col span={{ base: 12, sm: 6 }}>
               <TextInput
                 label="Subject"
                 placeholder="Subject"
@@ -110,7 +110,7 @@ export function TypeForm({
                 onChange={(e) => set({ subject: e.currentTarget.value })}
               />
             </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 12 }}>
+            <Grid.Col span={12}>
               <Textarea
                 label="Body"
                 rows={4}
@@ -125,8 +125,8 @@ export function TypeForm({
     case "phone":
       return (
         <Section title="Phone / SMS">
-          <Grid>
-            <Grid.Col span={{ base: 12, sm: 6, md: 6 }}>
+          <Grid gap="sm">
+            <Grid.Col span={{ base: 12, sm: 6 }}>
               <Select
                 label="Action"
                 value={data.kind}
@@ -137,7 +137,7 @@ export function TypeForm({
                 ]}
               />
             </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 6 }}>
+            <Grid.Col span={{ base: 12, sm: 6 }}>
               <TextInput
                 label="Phone number"
                 placeholder="+1-555-010-2030"
@@ -146,7 +146,7 @@ export function TypeForm({
               />
             </Grid.Col>
             {data.kind === "sms" && (
-              <Grid.Col span={{ base: 12, md: 12 }}>
+              <Grid.Col span={12}>
                 <Textarea
                   label="Prefilled message"
                   rows={3}
@@ -223,22 +223,22 @@ export function TypeForm({
     case "calendar":
       return (
         <Section title="Calendar event">
-          <Grid>
-            <Grid.Col span={{ base: 12, sm: 6, md: 6 }}>
+          <Grid gap="sm">
+            <Grid.Col span={{ base: 12, sm: 6 }}>
               <TextInput
                 label="Title"
                 value={data.title}
                 onChange={(e) => set({ title: e.currentTarget.value })}
               />
             </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 6 }}>
+            <Grid.Col span={{ base: 12, sm: 6 }}>
               <TextInput
                 label="Location"
                 value={data.location}
                 onChange={(e) => set({ location: e.currentTarget.value })}
               />
             </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 6 }}>
+            <Grid.Col span={{ base: 12, sm: 6 }}>
               <TextInput
                 label="Start"
                 type="datetime-local"
@@ -246,7 +246,7 @@ export function TypeForm({
                 onChange={(e) => set({ start: e.currentTarget.value })}
               />
             </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 6, md: 6 }}>
+            <Grid.Col span={{ base: 12, sm: 6 }}>
               <TextInput
                 label="End"
                 type="datetime-local"
@@ -254,7 +254,7 @@ export function TypeForm({
                 onChange={(e) => set({ end: e.currentTarget.value })}
               />
             </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 12 }}>
+            <Grid.Col span={12}>
               <Textarea
                 label="Description"
                 rows={3}
@@ -269,8 +269,8 @@ export function TypeForm({
       return (
         <Stack gap="lg">
           <Section title="Titles">
-            <Grid>
-              <Grid.Col span={{ base: 12, sm: 6, md: 6 }}>
+            <Grid gap="sm">
+              <Grid.Col span={{ base: 12, sm: 6 }}>
                 <TextInput
                   aria-label="First name"
                   placeholder="First name"
@@ -278,7 +278,7 @@ export function TypeForm({
                   onChange={(e) => set({ firstName: e.currentTarget.value })}
                 />
               </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 6, md: 6 }}>
+              <Grid.Col span={{ base: 12, sm: 6 }}>
                 <TextInput
                   aria-label="Last name"
                   placeholder="Last name"
@@ -286,7 +286,7 @@ export function TypeForm({
                   onChange={(e) => set({ lastName: e.currentTarget.value })}
                 />
               </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 6, md: 6 }}>
+              <Grid.Col span={{ base: 12, sm: 6 }}>
                 <TextInput
                   aria-label="Title (e.g. Dr.)"
                   placeholder="Title (e.g. Dr.)"
@@ -294,7 +294,7 @@ export function TypeForm({
                   onChange={(e) => set({ title: e.currentTarget.value })}
                 />
               </Grid.Col>
-              <Grid.Col span={{ base: 12, sm: 6, md: 6 }}>
+              <Grid.Col span={{ base: 12, sm: 6 }}>
                 <TextInput
                   aria-label="Nickname"
                   placeholder="Nickname"
