@@ -167,7 +167,7 @@ export function BatchMode({
   };
 
   return (
-    <div style={{ display: "grid", gap: 24, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 380px))", alignItems: "start" }}>
+    <div className="qr-batch-grid">
       <Stack gap="md">
         <Card withBorder radius="md" p="md">
           <Stack gap="sm">
@@ -248,7 +248,7 @@ export function BatchMode({
               No rows yet. Download the template, fill it, then import it.
             </Text>
           ) : (
-            <SimpleGrid cols={{ base: 1, sm: 2, xl: 3 }} spacing="md">
+            <SimpleGrid cols={{ base: 1, sm: 2, lg: 3, xl: 4 }} spacing="md">
               {validRows.slice(0, 12).map((r) => (
                 <Card key={r.index} withBorder radius="md" p="sm">
                   <Stack gap="xs">
