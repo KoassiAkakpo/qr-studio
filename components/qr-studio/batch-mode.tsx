@@ -283,10 +283,13 @@ export function BatchMode({
           résumé garde les réglages sous les yeux même fermé. */}
       <Accordion variant="separated" radius="md" chevronPosition="left">
         <Accordion.Item value="appearance">
+          {/* Accordion.Control rend un <button>, dont le modèle de contenu est
+              du « phrasing content ». Sans `component="span"` et `span`, Group
+              et Text y posent un <div> et des <p> : du HTML invalide. */}
           <Accordion.Control>
-            <Group gap="sm" wrap="wrap">
-              <Text fw={600} size="sm">✣ Appearance</Text>
-              <Text size="xs" c="dimmed">{describeAppearance(appearance)}</Text>
+            <Group component="span" gap="sm" wrap="wrap">
+              <Text span fw={600} size="sm">✣ Appearance</Text>
+              <Text span size="xs" c="dimmed">{describeAppearance(appearance)}</Text>
             </Group>
           </Accordion.Control>
           <Accordion.Panel>
