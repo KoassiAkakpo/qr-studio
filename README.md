@@ -7,6 +7,8 @@ Everything runs in the browser. There is no backend, no account, no upload and
 no telemetry — spreadsheets you import and codes you generate never leave the
 machine.
 
+**Live:** https://qr-studio-roan.vercel.app
+
 ## Getting started
 
 ```bash
@@ -77,6 +79,18 @@ Next.js 16 (App Router, React 19), Mantine v9 with `@mantine/dropzone` and
 
 `xlsx` is installed from a vendored archive rather than npm; see
 [vendor/README.md](vendor/README.md) for why and how to update it.
+
+## Deployment
+
+Hosted on Vercel, built from `main` — pushing to `main` deploys to production and
+any other branch gets a preview. The build needs no configuration and no
+environment variables, since the app makes no network calls of its own.
+
+One thing that does matter: `vendor/xlsx-0.20.3.tgz` is committed, and it must
+stay that way. `package.json` resolves `xlsx` from that path, so a host running
+`npm ci` on a checkout without the archive fails to install while a local
+`node_modules` keeps working — the failure would only ever appear in the build
+log.
 
 ## Project notes
 
