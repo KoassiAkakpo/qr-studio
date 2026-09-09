@@ -150,6 +150,20 @@ Two supporting rules earn their place:
   column is ~924px wide, so one field per row stretched a “Nickname” input to that
   full width. `.qr-field-wide` (`grid-column: 1 / -1`) opts a textarea or an address
   back into a full row.
+
+  **Two mechanisms coexist in [components/type-forms.tsx](components/type-forms.tsx)
+  and the choice is by field count**, not by taste. `.qr-field-grid` resolves to
+  three columns at 924px, so it fits a section of three peer fields (Work, Phone
+  numbers, Contact, Wi-Fi, Location, Social). A section of **two or four** fields
+  gets Mantine `Grid` with explicit halves (`span={{ base: 12, sm: 6 }}`) instead —
+  under auto-fit, four fields leave an orphan on a second row and two fields leave
+  a dead third column, which is what Titles, Email, Phone / SMS and Calendar each
+  did. Pairing Start with End in Calendar is the same rule paying off semantically.
+  The cost is that a `Grid` section does not line its column edges up with a
+  `.qr-field-grid` section above or below it, visible in the Person form where
+  Titles is two columns and the three sections under it are three; the orphan was
+  worse. Note also that `Grid`'s default gutter is `md` (16px) against this grid's
+  12px, so field widths differ by ~2px between adjacent sections.
 - `.qr-type-bar` is a single non-wrapping row that scrolls horizontally. The nine
   types used to own a 220px column that ran 362px tall and left 1276px of dead
   space under it. Because it scrolls, the active type can start off-screen on a
